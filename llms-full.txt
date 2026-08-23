@@ -1,0 +1,134 @@
+# Grafana Secrets Manager API
+
+This is simple API to store and retrieve secrets. Note that common
+operations are supported (add, update, delete list) as well as requesting
+the plain text version of a secret. The operations are accessible based on
+the scopes of the secret used to access the API.
+
+## API Reference
+
+### Grafana Secrets Manager API
+
+Path: `/api.html`
+Version: 0.0.1
+
+This is simple API to store and retrieve secrets. Note that common
+operations are supported (add, update, delete list) as well as requesting
+the plain text version of a secret. The operations are accessible based on
+the scopes of the secret used to access the API.
+
+#### Operations
+
+##### GET /secrets
+
+Summary: Retrieve all secrets
+
+Returns a list of secrets
+
+Responses:
+- 200: A list of secrets with metadata
+- 401: Unauthorized
+- 403: Not allowed
+
+##### POST /secrets
+
+Summary: Add a new secret
+
+Add a new secret
+
+Request body: application/json
+
+Responses:
+- 201: A single secret with metadata
+- 400: Invalid input
+- 401: Unauthorized
+- 403: Not allowed
+- 422: Validation exception
+
+##### GET /secrets/find_by_labels
+
+Summary: Finds secrets by labels
+
+Multiple labels can be provided with comma separated strings.
+
+Responses:
+- 200: A list of secrets with metadata
+- 400: Invalid tag value
+- 401: Unauthorized
+- 403: Not allowed
+
+##### GET /secrets/{id}
+
+Summary: Find secret by ID
+
+Returns a single secret
+
+Parameters:
+- `id` (path, string, required) - ID of secret to return
+
+Responses:
+- 200: A single secret with metadata
+- 400: Invalid ID supplied
+- 401: Unauthorized
+- 403: Not allowed
+- 404: Secret not found
+
+##### PUT /secrets/{id}
+
+Summary: Update an existing secret
+
+Update an existing secret by Id
+
+Parameters:
+- `id` (path, string, required) - ID of secret to update
+
+Request body: application/json
+
+Responses:
+- 202: A single secret with metadata
+- 400: Invalid ID supplied
+- 401: Unauthorized
+- 403: Not allowed
+- 404: Secret not found
+- 422: Validation exception
+
+##### DELETE /secrets/{id}
+
+Summary: Deletes a secret
+
+delete a secret
+
+Parameters:
+- `id` (path, string, required) - Secret id to delete
+
+Responses:
+- 200: A successful operation
+- 400: Invalid secret value
+- 401: Unauthorized
+- 403: Not allowed
+
+##### GET /secrets/{id}/decrypt
+
+Summary: Decrypt the specified secret
+
+Returns the secret with the plaintext value set
+
+Parameters:
+- `id` (path, string, required) - ID of secret to decrypt
+
+Responses:
+- 200: A single secret with metadata and the secret value as plaintext.
+- 400: Invalid ID supplied
+- 401: Unauthorized
+- 403: Not allowed
+- 404: Secret not found
+
+#### Models
+
+- CommonSecretProperties
+- SecretMetadata
+- Secret
+- SecretWithMetadata
+- DecryptedSecret
+- Label
+- ApiResponse

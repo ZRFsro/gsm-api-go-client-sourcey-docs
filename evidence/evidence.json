@@ -1,0 +1,16 @@
+{
+  "bounty": 113,
+  "target": "grafana/gsm-api-go-client",
+  "source_commit": "cb525870bd3b32dd1b33265eb8b8b22ff65b3b99",
+  "adapter": "openapi",
+  "source_file": "openapi.yaml",
+  "sourcey_version": "3.6.5",
+  "validation": {"status": "valid", "operations": 7, "schemas": 7},
+  "build": {"status": "success", "files": 9, "bytes": 1137042, "html_files": 2},
+  "under_documented_evidence": {"readme_lines": 3, "api_documentation_links": 0, "commits": 126},
+  "why_credible": "Maintained Grafana-owned Go client with a real OpenAPI contract and no API documentation in its three-line README.",
+  "commands": [
+    "npx --yes sourcey@3.6.5 validate openapi.yaml",
+    "npx --yes sourcey@3.6.5 build openapi.yaml -o sourcey-dist"
+  ]
+}

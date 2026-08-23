@@ -1,0 +1,14 @@
+# Grafana Secrets Manager API
+
+> This is simple API to store and retrieve secrets. Note that common
+
+## API Reference
+
+- [Grafana Secrets Manager API](/api.html): This is simple API to store and retrieve secrets. Note that common
+- [Retrieve all secrets](/api.html#operation-secrets-get): GET /secrets - Returns a list of secrets
+- [Add a new secret](/api.html#operation-secrets-post): POST /secrets - Add a new secret
+- [Finds secrets by labels](/api.html#operation-secrets-find-by-labels-get): GET /secrets/find_by_labels - Multiple labels can be provided with comma separated strings.
+- [Find secret by ID](/api.html#operation-secrets-id-get): GET /secrets/{id} - Returns a single secret
+- [Update an existing secret](/api.html#operation-secrets-id-put): PUT /secrets/{id} - Update an existing secret by Id
+- [Deletes a secret](/api.html#operation-secrets-id-delete): DELETE /secrets/{id} - delete a secret
+- [Decrypt the specified secret](/api.html#operation-secrets-id-decrypt-get): GET /secrets/{id}/decrypt - Returns the secret with the plaintext value set
