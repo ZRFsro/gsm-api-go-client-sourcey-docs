@@ -4,7 +4,7 @@ Az éles oldal: https://zrfsro.github.io/gsm-api-go-client-sourcey-docs/vili-viv
 
 ## Versenyek és fotók
 
-A versenykártyán a végeredmény, a győzelmek és vereségek, valamint minden importált csoportkör helyezése látható. A csoporton belüli helyezés külön szerepel a teljes mezőny csoportkör utáni rangsorától. Az „Asszók” lenyitásával körönként, ellenfelenként látható az eredmény; mindig Vili pontja van elöl.
+A versenykártyán a végeredmény, a győzelmek és vereségek, valamint minden importált csoportkör helyezése látható. A csoporton belüli helyezés külön szerepel a teljes mezőny csoportkör utáni rangsorától. Az „Asszóeredmények” részben minden asszó alapból látható, körönként és ellenfelenként; mindig Vili pontja van elöl.
 
 A kártya „Fotók” gombja kizárólag az adott verseny albumát nyitja meg. Szülőként innen tölthetők fel a képek. A Fotók fül az albumokat versenyenként mutatja.
 
@@ -30,3 +30,4 @@ Ezután saját ikonnal, külön ablakban indul. Az aktuális adatokhoz és a hel
 ## Automatikus eredmények
 
 A NAS a saját, tartós Fencing Time Live-belépését használja. A folyamatban lévő versenyek hivatalos eredményeit körülbelül percenként ellenőrzi, a befejezetteket óránként. Az új magyarországi és szlovákiai versenyeket óránként keresi, és Vili teljes nevének pontos egyezése alapján kapcsolja a naplóhoz. A keresés a FTL közzétett versenyeire és névsoraira támaszkodik; a még nem közzétett nevezést nem tudja előre látni.
+
