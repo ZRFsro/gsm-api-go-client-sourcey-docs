@@ -89,14 +89,14 @@ async function collectorAction(req:Request,action:string){
    if(req.method!=="POST")return err("Hibás metódus",405);
    const b=await req.json();
    if(!uid(b.event_id)||!isFTL(b.source_url))return err("Hibás versenyazonosító vagy forrás",400);
-   const {data:e,error:findError}=await sb.from("events").select("id,source_url").eq("id",b.event_id).maybeSingle();
+   const {data:e,error:findError}=await sb.from("events").select("id,source_url,source_evidence").eq("id",b.event_id).maybeSingle();
    if(findError||!e||e.source_url!==b.source_url)return err("Forrásazonosító nem egyezik",400);
    const acceptable=["awaiting_login","scanning","updated","complete","login_required","no_results","error"];
    if(!acceptable.includes(b.status))return err("Hibás forrásállapot",400);
    const change:any={source_checked_at:new Date().toISOString(),source_status:b.status,source_last_error:b.status==="error"?safeStr(b.message,300):null};
    if(b.status==="updated"||b.status==="complete"){
       if(b.fencer_confirmed!==true)return err("A vívó azonosítása hiányzik",400);
-      change.source_evidence=cleanEvidence(b.evidence);
+      change.source_evidence={...cleanEvidence(b.evidence),...(e.source_evidence?.post_pool?{post_pool:e.source_evidence.post_pool}:{})};
       if(b.rank!==null&&b.rank!==undefined)change.rank=num(b.rank);
       if(b.field_size!==null&&b.field_size!==undefined)change.field_size=num(b.field_size);
       if(b.wins!==null&&b.wins!==undefined)change.wins=num(b.wins);
