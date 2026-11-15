@@ -56,7 +56,7 @@ export function extractPage(){
  if(location.pathname.includes('/pools/scores/'))out.loaded &&= !!document.querySelector('.poolTable');
  if(location.pathname.includes('/tableaus/scores/'))out.loaded &&= !!document.querySelector('.elimTableau');
  if(location.pathname.includes('/events/results/'))out.loaded &&= results.length>0||document.body.innerText.includes('No matching records found');
- out.header=txt(document.querySelector('header')||document.querySelector('nav'));
+ out.header=(document.querySelector('header')||document.querySelector('nav'))?.textContent?.trim()||'';
  return out;
 }
 const extraction='('+extractPage.toString()+')()';
@@ -74,8 +74,9 @@ async function browser(){
 }
 async function visit(url){
  if(!isFTL(url))throw Error('Unapproved source host');const c=await browser();await c.call('Page.navigate',{url});
- let last;for(let n=0;n<40;n++){await sleep(500);try{last=await c.evaluate(extraction);if(last.login)return last;if(last.url!==url)continue;if(last.loaded&&(last.confirmed||last.links.length>10||last.tournaments.length>0)&&n>=5)return last;}catch{}}
- if(last?.url===url&&last.loaded)return last;throw Error('Competition page did not finish loading');
+ const samePage=u=>typeof u==='string'&&u.split('#')[0]===url.split('#')[0];
+ let last;for(let n=0;n<80;n++){await sleep(500);try{last=await c.evaluate(extraction);if(last.login)return last;if(!samePage(last.url))continue;if(last.loaded&&(last.confirmed||last.links.length>10||last.tournaments.length>0)&&n>=5)return last;}catch{}}
+ if(samePage(last?.url)&&last.loaded)return last;throw Error('Competition page did not finish loading: '+url);
 }
 async function collect(event){
  const first=await visit(event.source_url);if(first.login){await api('update',{event_id:event.id,source_url:event.source_url,status:'login_required'});return 'login_required'}
