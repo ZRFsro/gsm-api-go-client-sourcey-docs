@@ -77,3 +77,11 @@ ellenőrizni kell.
 A keresés kezeli a FTL késve betöltődő listáját, a menetrend `#today`
 címkiegészítését és a keskeny nézetben vizuálisan elrejtett versenydátumot.
 Egy jövőbeli, még nem közzétett nevezést a program nem tud előre megtalálni.
+
+2026. november 15., 15:36 UTC: a teljes NAS-önellenőrzés sikeres.
+Üres tesztnaplóból, előre megadott versenylink nélkül 6 magyar/szlovák
+versenyt vizsgált meg. Pontos névegyezéssel egy versenyszámot talált:
+U10 Férfi Tőr – Jövő Bajnokai Törekvés 2026. Beolvasta a 17/29-es
+helyezést és mind a 10 asszót. A próba a valódi naplóba nem írt.
+Az U12-es névsor nem adott téves találatot.
+
