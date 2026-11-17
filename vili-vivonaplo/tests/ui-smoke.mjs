@@ -1,4 +1,4 @@
-import {chromium} from "playwright";
+import {chromium,webkit} from "playwright";
 import {createServer} from "node:http";
 import {readFile} from "node:fs/promises";
 import path from "node:path";
@@ -30,10 +30,13 @@ const sample=[
   source_url:"https://www.fencingtimelive.com/rounds/strips/example",source_evidence:{post_pool:{rank:8,size:29}},
   rank:17,field_size:29,wins:7,losses:3,photos:[],bouts:[]}
 ];
-const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
-let passed=0;
-function check(ok,msg){if(!ok)throw Error(msg);passed++; console.log("PASS "+msg);}
+let passed=0,engineName="";
+function check(ok,msg){if(!ok)throw Error(msg);passed++; console.log("PASS "+engineName+": "+msg);}
 try {
+ for (const [name,browserType] of [["Chromium",chromium],["WebKit",webkit]]) {
+  engineName=name;
+  const browser=await browserType.launch({headless:true,args:name==="Chromium"?["--no-sandbox"]:[]});
+  try {
  for(const width of [320,375,390,768,1280]){
   const page=await browser.newPage({viewport:{width,height:820},deviceScaleFactor:2});
   const errors=[];
@@ -66,5 +69,7 @@ try {
   check(!errors.length,"JavaScript runtime without uncaught exceptions ("+width+"px): "+errors.join(","));
   await page.close();
  }
+ }finally{await browser.close();}
+ }
  console.log("SMOKE_TESTS_PASSED="+passed);
-}finally{await browser.close();await new Promise(r=>server.close(r));}
+}finally{await new Promise(r=>server.close(r));}
