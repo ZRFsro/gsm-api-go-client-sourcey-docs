@@ -14,9 +14,17 @@ A kártya „Fotók” gombja kizárólag az adott verseny albumát nyitja meg. 
 2. Nyomd meg a „+ Helyszíni hír beírása” gombot.
 3. Írd le röviden, mi történik most és mi következik. Például: „Vili a második csoportban vív.” / „Még egy asszó, utána várjuk a tábla beosztását.”
 4. Ha ismert, add meg az ellenfelet, a pástot és az állást. Ezek nem kötelezők.
-5. Mentsd el. A család ugyanitt látja az új hírt; a megnyitott, online oldal 45 másodpercenként frissül.
+5. Mentsd el. A család ugyanitt látja az új hírt; versenynapon a megnyitott, online oldal 45 másodpercenként frissül. Más napokon a „↻ Frissítés” gombbal kérhetők le az aktuális adatok.
 
 A helyszíni hírek külön eseménynaplóba kerülnek. Nem írják át a hivatalos helyezést vagy asszóeredményeket. Pontosításkor új hírt kell írni; a korábbi hírek megmaradnak időponttal. A rendszer nem talál ki ellenfelet, kezdési időt vagy következő kört, ha az még nincs megerősítve.
+
+## Következő verseny és fejlődés
+
+A főoldal kiemeli a következő U11-es versenyt, dátummal, ellenőrzött programmal és helyszínnel. Ez nem jelent automatikus nevezési visszaigazolást.
+
+A Fejlődés fül a mezőnyarányos helyezést mutatja: (indulók száma − helyezés) / (indulók száma − 1) × 100%. Ez a megelőzött ellenfelek aránya; az eltérő korosztályok nem közvetlenül összehasonlíthatók.
+
+A telefonról feltöltött fotók a jobb minőség érdekében kb. 1650 képpontos méretig és legfeljebb 850 KB-ig tömörülnek. Ha több fotóból néhány sikerül, a hibás feltöltés nem rejti el a korábban mentett képeket.
 
 ## Telefonra telepítés
 
