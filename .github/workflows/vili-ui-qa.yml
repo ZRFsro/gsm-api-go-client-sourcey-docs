@@ -1,0 +1,26 @@
+name: Vili vívónapló — mobile QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'vili-vivonaplo/index.html'
+      - 'vili-vivonaplo/update.js'
+      - 'vili-vivonaplo/sw.js'
+      - 'vili-vivonaplo/tests/**'
+      - '.github/workflows/vili-ui-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mobile-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@11bd71901bbe5b163ceea73d27597364c9af683
+      - name: Install browser test dependency
+        run: npm install --no-save playwright@1.56.1
+      - name: Install Chromium for Playwright
+        run: npx playwright install chromium
+      - name: Test narrow phones, tablets and desktops
+        run: node vili-vivonaplo/tests/ui-smoke.mjs
