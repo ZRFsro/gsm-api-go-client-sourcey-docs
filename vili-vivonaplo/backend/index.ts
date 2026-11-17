@@ -12,6 +12,22 @@ async function derive(p:string,salt:string,iter:number){let key=await crypto.sub
 function secureEq(a:string,b:string){let diff=a.length^b.length;for(let i=0;i<Math.max(a.length,b.length);i++)diff|=(a.charCodeAt(i)||0)^(b.charCodeAt(i)||0);return diff===0}
 function token(req:Request){let authHeader=req.headers.get("authorization")||"";if(authHeader.startsWith("Bearer "))return authHeader.slice(7);let item=(req.headers.get("cookie")||"").split(";").map(s=>s.trim()).find(s=>s.startsWith("vili_session="));return item?item.slice("vili_session=".length):""}
 function ck(tok:string,age:number){return "vili_session="+tok+"; Path=/functions/v1/vili-vivonaplo; HttpOnly; Secure; SameSite=Lax; Max-Age="+age}
+async function checkLoginLimit(req:Request,role:string){
+ const raw=req.headers.get("cf-connecting-ip")||req.headers.get("x-real-ip")||req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+ if(!raw)return {key:null,row:null,blocked:false};
+ const key=await sha(raw.slice(0,100)+"|"+role);
+ const {data,error}=await sb.from("web_login_attempts").select("failed_count,window_started,blocked_until").eq("client_hash",key).maybeSingle();
+ if(error)throw error;
+ return {key,row:data,blocked:!!data?.blocked_until&&Date.parse(data.blocked_until)>Date.now()};
+}
+async function failedLoginAttempt(limit:any){
+ if(!limit.key)return;
+ const now=Date.now(),within=limit.row?.window_started&&now-Date.parse(limit.row.window_started)<15*60*1000;
+ const failed_count=(within?Number(limit.row.failed_count):0)+1;
+ const blocked_until=failed_count>=8?new Date(now+15*60*1000).toISOString():null;
+ const {error}=await sb.from("web_login_attempts").upsert({client_hash:limit.key,failed_count,window_started:within?limit.row.window_started:new Date(now).toISOString(),blocked_until},{onConflict:"client_hash"});
+ if(error)throw error;
+}
 async function auth(req:Request){let t=token(req);if(t.length!==64||!Array.from(t).every(c=>"0123456789abcdef".includes(c)))return null;let q=await sb.from("web_sessions").select("role").eq("token_hash",await sha(t)).gt("expires_at",new Date().toISOString()).maybeSingle();return q.data?.role||null}
 const uid=(v:any)=>typeof v==="string"&&v.length===36&&Array.from(v).every(c=>"0123456789abcdefABCDEF-".includes(c));
 function num(v:any){if(v===null||v===undefined||v==="")return null;let n=Number(v);if(!Number.isInteger(n)||n<0||n>99999)throw Error("Hibás számérték");return n}
@@ -21,7 +37,22 @@ if(req.method==="OPTIONS")return new Response(null,{status:204,headers:{...cors}
 if(req.method==="GET"&&!a)return new Response(PAGE,{headers:{"Content-Type":"text/html; charset=utf-8",...h}});
 if(req.method==="POST"&&req.headers.get("origin")&&req.headers.get("origin")!==u.origin&&req.headers.get("origin")!=="https://zrfsro.github.io")return err("Nem engedélyezett kérés",403);
 if(a.startsWith("collector-"))return await collectorAction(req,a);
-if(req.method==="POST"&&a==="login"){let b=await req.json();if(!["admin","family"].includes(b.role)||typeof b.password!=="string"||b.password.length>200)return err("Hibás jelszó",401);let {data:acc,error:er}=await sb.from("web_access_accounts").select("*").eq("role",b.role).maybeSingle();if(er||!acc)return err("Hibás jelszó",401);if(!secureEq(await derive(b.password,acc.password_salt,acc.iterations),acc.password_hash))return err("Hibás jelszó",401);let t=hx(crypto.getRandomValues(new Uint8Array(32))),age=b.role==="admin"?1209600:2592000;let {error}=await sb.from("web_sessions").insert({token_hash:await sha(t),role:b.role,expires_at:new Date(Date.now()+age*1000).toISOString()});if(error)throw error;return json({role:b.role,token:t},200,{"Set-Cookie":ck(t,age)})}
+if(req.method==="POST"&&a==="login"){
+ const b=await req.json().catch(()=>({}));
+ if(!["admin","family"].includes(b.role)||typeof b.password!=="string"||b.password.length>200)return err("Hibás jelszó",401);
+ const limit=await checkLoginLimit(req,b.role);
+ if(limit.blocked)return err("Túl sok hibás próbálkozás. Próbáld újra 15 perc múlva.",429);
+ const {data:acc,error:er}=await sb.from("web_access_accounts").select("*").eq("role",b.role).maybeSingle();
+ if(er)throw er;
+ if(!acc||!secureEq(await derive(b.password,acc.password_salt,acc.iterations),acc.password_hash)){
+  await failedLoginAttempt(limit);return err("Hibás jelszó",401);
+ }
+ if(limit.key)await sb.from("web_login_attempts").delete().eq("client_hash",limit.key);
+ const t=hx(crypto.getRandomValues(new Uint8Array(32))),age=b.role==="admin"?1209600:2592000;
+ const {error}=await sb.from("web_sessions").insert({token_hash:await sha(t),role:b.role,expires_at:new Date(Date.now()+age*1000).toISOString()});
+ if(error)throw error;
+ return json({role:b.role,token:t},200,{"Set-Cookie":ck(t,age)});
+}
 let role=await auth(req);
 if(req.method==="GET"&&a==="whoami")return json({role});
 if(req.method==="POST"&&a==="logout"){let t=token(req);if(t)await sb.from("web_sessions").delete().eq("token_hash",await sha(t));return json({ok:true},200,{"Set-Cookie":ck("",0)})}
