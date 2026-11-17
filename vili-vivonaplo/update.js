@@ -43,5 +43,5 @@
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});
   window.addEventListener('online',check);
   window.addEventListener('pageshow',check);
-  setInterval(check,60000);check();
+  setInterval(check,6*60*60*1000);check();
 })();
