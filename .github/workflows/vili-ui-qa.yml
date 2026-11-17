@@ -21,6 +21,6 @@ jobs:
       - name: Install browser test dependency
         run: npm install --no-save playwright@1.56.1
       - name: Install Chromium for Playwright
-        run: npx playwright install chromium webkit
+        run: npx playwright install --with-deps chromium webkit
       - name: Test narrow phones, tablets and desktops in Chromium and WebKit
         run: node vili-vivonaplo/tests/ui-smoke.mjs
