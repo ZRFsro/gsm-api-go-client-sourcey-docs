@@ -2,6 +2,16 @@
 
 Az éles oldal: https://zrfsro.github.io/gsm-api-go-client-sourcey-docs/vili-vivonaplo/
 
+## Fejlődés: csoportkörök után és a verseny végén
+
+A **Fejlődés** fül minden versenynél két külön értéket mutat:
+- **Csoportkörök utáni összesített helyezés** a hivatalos kiemelési rangsorból (például: 8. / 29).
+- **Végső helyezés** a verseny eredménylistájából (például: 17. / 29).
+
+Mindkét eredmény külön vonalként szerepel a grafikonon (arany = csoportkörök után, kék = végső). A százalék a megelőzött versenyzők aránya a saját, forrás szerinti mezőnyben. Vegyes versenyeken a csoportkör utáni teljes mezőny és a külön fiú végeredmény nevezője eltérhet, ezt a felület megőrzi és külön magyarázza.
+
+Ahol még nincs ellenőrzött csoportkör utáni helyezés, ott „—” és „Még nincs ellenőrzött adat” látható. A részleteknél az egyes csoportokban elért helyezések is megmaradnak.
+
 ## Versenyek és fotók
 
 A versenykártyán a végeredmény, a győzelmek és vereségek, valamint minden importált csoportkör helyezése látható. A csoporton belüli helyezés külön szerepel a teljes mezőny csoportkör utáni rangsorától. Az „Asszóeredmények” részben minden asszó alapból látható, körönként és ellenfelenként; mindig Vili pontja van elöl.
