@@ -27,8 +27,11 @@ const sample=[
   source_evidence:{schedule:upcoming+" 09:30 CET – U11 fiú tőr"},rank:null,field_size:null,wins:null,losses:null,photos:[],bouts:[]},
  {id:"22222222-2222-4222-8222-222222222222",name:"Jövő Bajnokai – teszt",date:previous,
   category:"U10 fiú tőr",city:"Budapest, Magyarország",source_status:"complete",
-  source_url:"https://www.fencingtimelive.com/rounds/strips/example",source_evidence:{post_pool:{rank:8,size:29}},
-  rank:17,field_size:29,wins:7,losses:3,photos:[],bouts:[]}
+  source_url:"https://www.fencingtimelive.com/rounds/strips/example",source_evidence:{post_pool:{rank:8,size:29},pool_results:[{round:1,pool_rank:3,pool_size:5},{round:2,pool_rank:1,pool_size:6}]},
+  rank:17,field_size:29,wins:7,losses:3,photos:[],bouts:[]},
+ {id:"33333333-3333-4333-8333-333333333333",name:"Szlovák Kupa – vegyes mezőny",date:"2026-10-31",
+  category:"U11 fiú tőr",city:"Pozsony, Szlovákia",source_status:"not_connected",
+  source_evidence:{post_pool:{rank:20,size:21}},rank:10,field_size:15,wins:0,losses:5,photos:[],bouts:[]}
 ];
 let passed=0,engineName="";
 function check(ok,msg){if(!ok)throw Error(msg);passed++; console.log("PASS "+engineName+": "+msg);}
@@ -54,8 +57,8 @@ try {
   await page.locator("#loginPass").fill("not-a-real-password");
   await page.locator("#loginForm button[type=submit]").click();
   await page.locator("#metricEvents").waitFor({state:"visible"});
-  check(await page.locator("#metricEvents").innerText()==="2","event list loads ("+width+"px)");
-  check(await page.locator(".race-date-badge").count()===2,"real competition date badges rendered ("+width+"px)");
+  check(await page.locator("#metricEvents").innerText()==="3","event list loads ("+width+"px)");
+  check(await page.locator(".race-date-badge").count()===3,"real competition date badges rendered ("+width+"px)");
   check(await page.locator("#upcomingPanel").isVisible(),"upcoming U11 card visible ("+width+"px)");
   check((await page.locator("#upcomingPanel").innerText()).includes("09:30"),"scheduled time visible ("+width+"px)");
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
@@ -66,6 +69,22 @@ try {
   await page.locator('[data-tab="progress"]').click();
   check((await page.locator("#content").innerText()).includes("43%"),"field-normalized placement is 43% ("+width+"px)");
   check(await page.locator(".result-chart").count()===1,"real-data chart renders as SVG ("+width+"px)");
+  check(await page.locator(".legend-pool").count()===1,"post-pool legend visible ("+width+"px)");
+  check(await page.locator(".pool-series-line").count()===1,"post-pool trend rendered ("+width+"px)");
+  check(await page.locator(".final-series-line").count()===1,"final-placement trend rendered ("+width+"px)");
+  const budapest=page.locator(".progress-race").filter({hasText:"Jövő Bajnokai – teszt"});
+  check((await budapest.locator(".progress-place-group strong").innerText()).trim()==="8. / 29","post-pool rank 8/29 recorded ("+width+"px)");
+  check((await budapest.locator(".progress-place-final strong").innerText()).trim()==="17. / 29","final rank 17/29 recorded ("+width+"px)");
+  const mixed=page.locator(".progress-race").filter({hasText:"Szlovák Kupa – vegyes mezőny"});
+  check((await mixed.locator(".progress-place-group strong").innerText()).trim()==="20. / 21","mixed pool count stays 21 ("+width+"px)");
+  check((await mixed.locator(".progress-place-final strong").innerText()).trim()==="10. / 15","mixed final count stays 15 ("+width+"px)");
+  const future=page.locator(".progress-race").filter({hasText:"Opavský listopad"});
+  check((await future.locator(".progress-place-group strong").innerText()).trim()==="—","missing pool ranking not invented ("+width+"px)");
+  check((await future.locator(".progress-place-final strong").innerText()).trim()==="—","missing final ranking not invented ("+width+"px)");
+  check((await budapest.locator(".progress-rounds").innerText()).includes("1. csoport"),"individual pool rounds preserved ("+width+"px)");
+  const progressOverflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
+  check(progressOverflow<=2,"progress view has no horizontal overflow "+width+"px, measured="+progressOverflow);
+
   await page.locator('[data-tab="photos"]').click();
   check((await page.locator("#content").innerText()).includes("még nincs fényképe"),"empty album shown ("+width+"px)");
   check(!errors.length,"JavaScript runtime without uncaught exceptions ("+width+"px): "+errors.join(","));
