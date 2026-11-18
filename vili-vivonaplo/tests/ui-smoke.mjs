@@ -55,6 +55,7 @@ try {
   await page.locator("#loginForm button[type=submit]").click();
   await page.locator("#metricEvents").waitFor({state:"visible"});
   check(await page.locator("#metricEvents").innerText()==="2","event list loads ("+width+"px)");
+  check(await page.locator(".race-date-badge").count()===2,"real competition date badges rendered ("+width+"px)");
   check(await page.locator("#upcomingPanel").isVisible(),"upcoming U11 card visible ("+width+"px)");
   check((await page.locator("#upcomingPanel").innerText()).includes("09:30"),"scheduled time visible ("+width+"px)");
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
@@ -64,6 +65,7 @@ try {
   check(opened,"upcoming details opens real race card ("+width+"px)");
   await page.locator('[data-tab="progress"]').click();
   check((await page.locator("#content").innerText()).includes("43%"),"field-normalized placement is 43% ("+width+"px)");
+  check(await page.locator(".result-chart").count()===1,"real-data chart renders as SVG ("+width+"px)");
   await page.locator('[data-tab="photos"]').click();
   check((await page.locator("#content").innerText()).includes("még nincs fényképe"),"empty album shown ("+width+"px)");
   check(!errors.length,"JavaScript runtime without uncaught exceptions ("+width+"px): "+errors.join(","));
