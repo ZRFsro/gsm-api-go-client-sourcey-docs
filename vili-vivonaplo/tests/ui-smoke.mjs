@@ -57,6 +57,7 @@ try {
   await page.locator("#loginPass").fill("not-a-real-password");
   await page.locator("#loginForm button[type=submit]").click();
   await page.locator("#metricEvents").waitFor({state:"visible"});
+  await page.waitForFunction(()=>document.querySelector("#metricEvents")?.textContent?.trim()==="3",{timeout:12000});
   check(await page.locator("#metricEvents").innerText()==="3","event list loads ("+width+"px)");
   check(await page.locator(".race-date-badge").count()===3,"real competition date badges rendered ("+width+"px)");
   check(await page.locator("#upcomingPanel").isVisible(),"upcoming U11 card visible ("+width+"px)");
