@@ -62,3 +62,9 @@ A Geostab 2026 őszi eredményarchívuma:
 https://www.geostab.cz/serm/rok26_2pol/podzim26.htm
 
 A hivatalos cseh eredmények és a Geostab U11 fiú tőr PDF megjelenését külön Supabase Cron figyeli november 21-én, ötpercenként 08:00–19:55 CET között, november 22–24-én ritkábban. Ha az eredmény közzé van téve, azt külön státuszként jelzi és a PDF-linket megjeleníti. Ez az ellenőrzés NEM jelenti a Fencing Time Live asszóeredmények automatikus beimportálását: ahhoz hitelesített, a konkrét U11-es versenyszámra kapcsolt adatgyűjtő kell.
+
+## Nagyszülők és nagynénik első belépése
+
+A családi szerepkör a jelszavas belépés után egyszeri útmutató ablakot kap, amelyben le van írva: hogyan kell megnyitni a versenyt, a sárga Fencing Time Live élő eredménylinket, a családi helyszíni híreket, a csoportkörök utáni helyezést és a fotókat. Az ablak bezárható; utána a fejléc Súgó gombjával bármikor újranyitható. A külső Fencing Time Live oldalon külön bejelentkezés szükséges lehet.
+
+A november 21-i opavai esemény külső eredményközlését 2026.11.21-én 08:00–19:45 CET között 15 percenként vizsgálja a Supabase időzítő. Ez az ellenőrzés a hivatalos eredménylink és az esetleges Geostab PDF közzétételét figyeli, nem jelent automatikus asszóimportot.
