@@ -49,3 +49,16 @@ Ezután saját ikonnal, külön ablakban indul. Az aktuális adatokhoz és a hel
 
 A NAS a saját, tartós Fencing Time Live-belépését használja. A folyamatban lévő versenyek hivatalos eredményeit körülbelül percenként ellenőrzi, a befejezetteket óránként. Az új magyarországi és szlovákiai versenyeket óránként keresi, és Vili teljes nevének pontos egyezése alapján kapcsolja a naplóhoz. A keresés a FTL közzétett versenyeire és névsoraira támaszkodik; a még nem közzétett nevezést nem tudja előre látni.
 
+
+## Opavský listopad 2026 – élő követés
+
+A november 21-i U11 fiú tőrversenyhez az Opavský listopad 2026 Fencing Time Live menetrendje került be:
+https://www.fencingtimelive.com/tournaments/eventSchedule/AB4F797396B5483DA011976CC6B4ED36#today
+
+A cseh szövetség versenylapja:
+https://www.czechfencing.cz/portal/tournaments/detail/2c42469b-58e9-4bc0-9486-ce4900cae2b8
+
+A Geostab 2026 őszi eredményarchívuma:
+https://www.geostab.cz/serm/rok26_2pol/podzim26.htm
+
+A hivatalos cseh eredmények és a Geostab U11 fiú tőr PDF megjelenését külön Supabase Cron figyeli november 21-én, ötpercenként 08:00–19:55 CET között, november 22–24-én ritkábban. Ha az eredmény közzé van téve, azt külön státuszként jelzi és a PDF-linket megjeleníti. Ez az ellenőrzés NEM jelenti a Fencing Time Live asszóeredmények automatikus beimportálását: ahhoz hitelesített, a konkrét U11-es versenyszámra kapcsolt adatgyűjtő kell.
