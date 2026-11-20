@@ -59,6 +59,16 @@ try {
   await page.locator("#metricEvents").waitFor({state:"visible"});
   await page.waitForFunction(()=>document.querySelector("#metricEvents")?.textContent?.trim()==="3",{timeout:12000});
   check(await page.locator("#metricEvents").innerText()==="3","event list loads ("+width+"px)");
+  await page.locator("#familyGuide").waitFor({state:"visible",timeout:12000});
+  check(await page.locator("#familyGuide").isVisible(),"grandparents first-login guide opens ("+width+"px)");
+  check((await page.locator("#familyGuide").innerText()).includes("Fencing Time Live"),"guide explains official live view ("+width+"px)");
+  check(await page.locator("#guideOfficialLink").getAttribute("href")==="https://www.fencingtimelive.com/tournaments/eventSchedule/AB4F797396B5483DA011976CC6B4ED36#today","guide has official live link ("+width+"px)");
+  await page.locator("#guideOkay").click();
+  check(!(await page.locator("#familyGuide").isVisible()),"guide dismisses correctly ("+width+"px)");
+  await page.locator("#familyHelp").click();
+  check(await page.locator("#familyGuide").isVisible(),"grandparents can reopen help ("+width+"px)");
+  await page.locator("#guideRaceButton").click();
+  check(await page.locator('[data-race="11111111-1111-4111-8111-111111111111"]').evaluate(e=>e.open),"guide opens competition details ("+width+"px)");
   check(await page.locator(".race-date-badge").count()===3,"real competition date badges rendered ("+width+"px)");
   check(await page.locator("#upcomingPanel").isVisible(),"upcoming U11 card visible ("+width+"px)");
   check((await page.locator("#upcomingPanel").innerText()).includes("09:30"),"scheduled time visible ("+width+"px)");
