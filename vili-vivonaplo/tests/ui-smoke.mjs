@@ -24,7 +24,7 @@ const previous="2026-11-14";
 const sample=[
  {id:"11111111-1111-4111-8111-111111111111",name:"Opavský listopad – teszt U11",date:upcoming,
   category:"U11 fiú tőr",city:"Opava, Csehország",source_status:"awaiting_results",source_url:"https://www.czechfencing.cz/portal/events/list",
-  source_evidence:{schedule:upcoming+" 09:30 CET – U11 fiú tőr"},rank:null,field_size:null,wins:null,losses:null,photos:[],bouts:[]},
+  source_evidence:{schedule:upcoming+" 09:30 CET – U11 fiú tőr",ftl_tournament_schedule:"https://www.fencingtimelive.com/tournaments/eventSchedule/AB4F797396B5483DA011976CC6B4ED36#today",geostab_pdf_available:false},rank:null,field_size:null,wins:null,losses:null,photos:[],bouts:[]},
  {id:"22222222-2222-4222-8222-222222222222",name:"Jövő Bajnokai – teszt",date:previous,
   category:"U10 fiú tőr",city:"Budapest, Magyarország",source_status:"complete",
   source_url:"https://www.fencingtimelive.com/rounds/strips/example",source_evidence:{post_pool:{rank:8,size:29},pool_results:[{round:1,pool_rank:3,pool_size:5},{round:2,pool_rank:1,pool_size:6}]},
@@ -62,11 +62,13 @@ try {
   check(await page.locator(".race-date-badge").count()===3,"real competition date badges rendered ("+width+"px)");
   check(await page.locator("#upcomingPanel").isVisible(),"upcoming U11 card visible ("+width+"px)");
   check((await page.locator("#upcomingPanel").innerText()).includes("09:30"),"scheduled time visible ("+width+"px)");
+  check(await page.locator("#upcomingPanel .opava-live-cta").getAttribute("href")==="https://www.fencingtimelive.com/tournaments/eventSchedule/AB4F797396B5483DA011976CC6B4ED36#today","official Opava FTL link appears ("+width+"px)");
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
   check(overflow<=2,"no horizontal overflow "+width+"px, measured="+overflow);
   await page.locator("#seeUpcoming").click();
   const opened=await page.locator('[data-race="11111111-1111-4111-8111-111111111111"]').evaluate(e=>e.open);
   check(opened,"upcoming details opens real race card ("+width+"px)");
+  check(await page.locator('[data-race="11111111-1111-4111-8111-111111111111"] .opava-live-cta').count()===1,"FTL live link on race detail ("+width+"px)");
   await page.locator('[data-tab="progress"]').click();
   check((await page.locator("#content").innerText()).includes("43%"),"field-normalized placement is 43% ("+width+"px)");
   check(await page.locator(".result-chart").count()===1,"real-data chart renders as SVG ("+width+"px)");
