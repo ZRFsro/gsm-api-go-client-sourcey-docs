@@ -82,11 +82,16 @@ const eventPath=/^\/events\/(?:view|competitors)\/[a-f0-9]{32}\/?$/i;
 export function scheduleCandidates(links,category){
  const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
  const expected=normalize(category);
+ const mixed=/\b(mixed|vegyes|smiseni|mix)\b/.test(expected);
  const matchesCategory=label=>{
-  if(!/\bu[ -]?11\b/.test(expected)||!/\bfiu\b/.test(expected)||!/\btor\b/.test(expected))return true;
+  if(!/\bu[ -]?11\b/.test(expected)||!/\btor\b/.test(expected)||(!mixed&&!/\bfiu\b/.test(expected)))return true;
+  if(!/\b(foil|fleret|fleuret|tor|florett)\b/.test(label))return false;
+  const u11=/\bu[ -]?11\b/.test(label);
+  const mixedDivision=u11&&/\b(mixed|vegyes|smiseni|mix)\b/.test(label);
+  if(mixed)return mixedDivision;
+  if(mixedDivision)return true;
   return !/\b(girls?|women|female|lany|no[ik]?|zacky|zakyne|divky|minizacky)\b/.test(label)&&
-   (/\bmini[ -]?zaci\b/.test(label)||(/\bu[ -]?11\b/.test(label)&&/\b(boys?|men|male|fiu|ferfi|chlapci|zaci)\b/.test(label)))&&
-   /\b(foil|fleret|fleuret|tor|florett)\b/.test(label);
+   (/\bmini[ -]?zaci\b/.test(label)||(u11&&/\b(boys?|men|male|fiu|ferfi|chlapci|zaci)\b/.test(label)));
  };
  const urls=new Set();
  for(const link of links){

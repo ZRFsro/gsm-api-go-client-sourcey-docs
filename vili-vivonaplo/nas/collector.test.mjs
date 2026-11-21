@@ -21,6 +21,18 @@ test('finds the correct division and normalizes duplicate links',()=>{
  assert.deepEqual(scheduleCandidates(links,event.category),[boys]);
 });
 
+test('accepts U11 mixed foil for the boys listing and confirms the fencer before linking',async()=>{
+ const mixed=eventUrl('b');
+ const schedule=[...links,{url:mixed,text:'U-11 Mixed Foil'},{url:eventUrl('9'),text:'U-13 Mixed Foil'}];
+ assert.deepEqual(scheduleCandidates(schedule,event.category),[boys,mixed]);
+ assert.deepEqual(scheduleCandidates(schedule,'U11 vegyes tőr'),[mixed]);
+ const saved=[];
+ const result=await resolveScheduledEvent(event,async url=>url===scheduleUrl?{links:schedule}:
+  {confirmed:url===mixed,title:'U-11 Mixed Foil',rows:['STERMENSZKY Vilmos']},body=>saved.push(body));
+ assert.equal(result.event.source_url,mixed);
+ assert.equal(saved[0].event_id,event.id);
+});
+
 test('binds only the confirmed competition to the original journal entry',async()=>{
  const visited=[], saved=[];
  const result=await resolveScheduledEvent(event,async url=>{
