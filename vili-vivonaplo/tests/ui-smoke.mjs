@@ -72,7 +72,7 @@ try {
   await page.locator("#familyHelp").click();
   await page.locator("#familyGuide").waitFor({state:"visible",timeout:12000});
   check(await page.locator("#familyGuide").isVisible(),"grandparents first-login guide opens ("+width+"px)");
-  check((await page.locator("#familyGuide").innerText()).includes("Fencing Time Live"),"guide explains official live view ("+width+"px)");
+  check((await page.locator("#familyGuide").innerText()).includes("Vili élő naplója"),"guide explains own live page ("+width+"px)");
   check(await page.locator("#guideOfficialLink").getAttribute("href")==="https://www.fencingtimelive.com/tournaments/eventSchedule/AB4F797396B5483DA011976CC6B4ED36#today","guide has official live link ("+width+"px)");
   await page.locator("#guideOkay").click();
   check(!(await page.locator("#familyGuide").isVisible()),"guide dismisses correctly ("+width+"px)");
