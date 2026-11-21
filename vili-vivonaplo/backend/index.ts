@@ -64,9 +64,24 @@ if(req.method==="GET"&&a==="photo"){let id=u.searchParams.get("id");if(!uid(id))
 if(role!=="admin")return err("Csak szülő szerkeszthet",403);
 if(req.method==="POST"&&a==="live-update"){
  const b=await req.json();if(!uid(b.event_id)||!["waiting","pool","break","tableau","finished"].includes(b.phase))return err("Válassz versenyt és érvényes szakaszt.",400);
+ if(b.update_id!==undefined&&(!uid(b.update_id)||typeof b.opponent!=="string"||!b.opponent.trim()||
+    !["pool","tableau"].includes(b.phase)||![b.my_score,b.their_score].every(value=>Number.isInteger(value)&&value>=0&&value<=99)))
+  return err("Érvénytelen asszóeredmény",400);
  const score=(v:any)=>{const n=num(v);if(n!==null&&n>99)throw Error("Hibás pontszám");return n};
  const record={event_id:b.event_id,phase:b.phase,current_text:safeStr(b.current_text,500),next_text:safeStr(b.next_text,500),opponent:safeStr(b.opponent,180),strip:safeStr(b.strip,60),my_score:score(b.my_score),their_score:score(b.their_score)};
  if(!record.current_text.trim())return err("Írd le röviden, mi történik most.",400);
+ if(b.update_id!==undefined){
+  const saved=await sb.from("event_live_updates").upsert({...record,id:b.update_id},{onConflict:"id",ignoreDuplicates:true}).select("id").maybeSingle();
+  if(saved.error)throw saved.error;
+  if(!saved.data){
+   const existing=await sb.from("event_live_updates").select("id").eq("id",b.update_id)
+    .eq("event_id",record.event_id).eq("opponent",record.opponent).eq("phase",record.phase)
+    .eq("my_score",record.my_score).eq("their_score",record.their_score).maybeSingle();
+   if(existing.error)throw existing.error;
+   if(!existing.data)return err("Ehhez az asszóhoz már eltérő eredmény van mentve. Frissítsd az élő naplót.",409);
+  }
+  return json({ok:true,id:b.update_id});
+ }
  const r=await sb.from("event_live_updates").insert(record).select("id").single();if(r.error)throw r.error;return json({ok:true,id:r.data.id});
 }
 if(req.method==="POST"&&a==="save-event"){let b=await req.json();if(typeof b.name!=="string"||!b.name.trim()||b.name.length>160||typeof b.date!=="string"||b.date.length!==10||!Array.from(b.date).every(c=>"0123456789-".includes(c)))return err("Név és érvényes dátum kötelező",400);let link=String(b.source_url||"");if(link&&(!link.startsWith("https://")||link.length>1200))return err("Csak HTTPS link használható",400);
