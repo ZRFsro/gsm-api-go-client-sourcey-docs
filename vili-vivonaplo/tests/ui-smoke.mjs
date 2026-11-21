@@ -42,6 +42,7 @@ try {
   try {
  for(const width of [320,375,390,768,1280]){
   const page=await browser.newPage({viewport:{width,height:820},deviceScaleFactor:2});
+  await page.clock.setFixedTime(new Date('2026-11-21T08:15:00Z'));
   const errors=[];
   page.on("pageerror",e=>errors.push(e.message));
   await page.route("https://dcmmpkjfgjaqdzhzmzuh.supabase.co/functions/v1/vili-vivonaplo**",async(route)=>{
@@ -53,12 +54,22 @@ try {
    await route.fulfill({status:200,contentType:"application/json",headers:{"access-control-allow-origin":"*"},body:JSON.stringify(response)});
   });
   await page.goto(address,{waitUntil:"domcontentloaded"});
+  await page.locator("#raceLiveModal").waitFor({state:"visible"});
+  check(await page.locator("#raceLiveModal").isVisible(),"race-day popup opens before login ("+width+"px)");
+  check((await page.locator("#raceLiveOfficial").getAttribute("href"))==="https://www.fencingtimelive.com/tournaments/eventSchedule/AB4F797396B5483DA011976CC6B4ED36#today","popup links to QR event ("+width+"px)");
+  await page.locator("#raceLiveDismiss").click();
+  check(!(await page.locator("#raceLiveModal").isVisible()),"race popup dismissible ("+width+"px)");
+  await page.locator("#racePopupHelp").click();
+  check(await page.locator("#raceLiveModal").isVisible(),"popup can be reopened ("+width+"px)");
+  await page.locator('#raceLiveModal [data-close="raceLiveModal"]').click();
   await page.locator("#loginForm").waitFor();
   await page.locator("#loginPass").fill("not-a-real-password");
   await page.locator("#loginForm button[type=submit]").click();
   await page.locator("#metricEvents").waitFor({state:"visible"});
   await page.waitForFunction(()=>document.querySelector("#metricEvents")?.textContent?.trim()==="3",{timeout:12000});
   check(await page.locator("#metricEvents").innerText()==="3","event list loads ("+width+"px)");
+  await page.locator("#familyHelp").waitFor({state:"visible",timeout:12000});
+  await page.locator("#familyHelp").click();
   await page.locator("#familyGuide").waitFor({state:"visible",timeout:12000});
   check(await page.locator("#familyGuide").isVisible(),"grandparents first-login guide opens ("+width+"px)");
   check((await page.locator("#familyGuide").innerText()).includes("Fencing Time Live"),"guide explains official live view ("+width+"px)");
