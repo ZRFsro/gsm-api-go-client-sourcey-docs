@@ -70,6 +70,7 @@ try {
   check(await page.locator("#metricEvents").innerText()==="3","event list loads ("+width+"px)");
   check(await page.locator("#pushSetup").isVisible(),"push opt-in card visible for family ("+width+"px)");
   check(await page.locator("#pushButton").isVisible(),"push enable button available ("+width+"px)");
+  check(await page.locator("#pushTestButton").isHidden(),"test push requires subscription ("+width+"px)");
   await page.locator("#familyHelp").waitFor({state:"visible",timeout:12000});
   await page.locator("#familyHelp").click();
   await page.locator("#familyGuide").waitFor({state:"visible",timeout:12000});
