@@ -1,4 +1,42 @@
-const CACHE='vili-shell-v19';const BASE=new URL('./',self.location).pathname;const ASSETS=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./fencing-hero.png'];self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));self.skipWaiting()});self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('vili-shell-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(e.request.method!=='GET'||u.origin!==self.location.origin||!u.pathname.startsWith(BASE)||u.search)return;if(e.request.mode==='navigate'){e.respondWith(fetch(e.request,{cache:"no-store"}).then(r=>{if(r.ok){const copy=r.clone();caches.open(CACHE).then(c=>c.put('./index.html',copy))}return r}).catch(()=>caches.match('./index.html')));return}if(ASSETS.some(a=>new URL(a,self.location).pathname===u.pathname))e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request)));});
+const CACHE = 'vili-shell-v20';
+const BASE = new URL('./', self.location);
+const ASSETS = ['./index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './fencing-hero.png', './update.js?v=7'];
+const assetURLs = new Set(ASSETS.map(asset => new URL(asset, BASE).href));
+self.addEventListener('install', event => {
+ event.waitUntil((async () => {
+  const cache = await caches.open(CACHE);
+  await cache.addAll(ASSETS.map(asset => new Request(new URL(asset, BASE), {cache:'reload'})));
+  await self.skipWaiting();
+ })());
+});
+self.addEventListener('activate', event => {
+ event.waitUntil((async () => {
+  const names = await caches.keys();
+  await Promise.all(names.filter(name => name.startsWith('vili-shell-') && name !== CACHE).map(name => caches.delete(name)));
+  await self.clients.claim();
+ })());
+});
+self.addEventListener('fetch', event => {
+ const url = new URL(event.request.url);
+ if (event.request.method !== 'GET' || url.origin !== BASE.origin) return;
+ if (event.request.mode === 'navigate' && [BASE.pathname, BASE.pathname + 'index.html'].includes(url.pathname)) {
+  event.respondWith((async () => {
+   const index = new URL('index.html', BASE);
+   try {
+    const response = await fetch(event.request, {cache:'no-store'});
+    if (response.ok) {
+     const copy = response.clone();
+     try { await (await caches.open(CACHE)).put(index, copy); } catch {}
+    }
+    return response;
+   } catch {
+    return (await (await caches.open(CACHE)).match(index)) || Response.error();
+   }
+  })());
+ } else if (assetURLs.has(url.href)) {
+  event.respondWith(caches.open(CACHE).then(cache => cache.match(event.request)).then(cached => cached || fetch(event.request)));
+ }
+});
 self.addEventListener('push',event=>{
  let data={title:'Vili vívónaplója',body:'Új versenyinformáció érkezett.',url:'https://zrfsro.github.io/gsm-api-go-client-sourcey-docs/vili-vivonaplo/'};
  try{const incoming=event.data?.json();if(incoming&&typeof incoming==='object')data={...data,...incoming}}catch{}
@@ -8,11 +46,11 @@ self.addEventListener('push',event=>{
 });
 self.addEventListener('notificationclick',event=>{
  event.notification.close();
- const target=new URL(event.notification.data?.url||'./',self.location.origin);
- if(target.origin!==self.location.origin)return;
+ const target=new URL(event.notification.data?.url||'./',BASE);
+ if(target.origin!==BASE.origin||!target.pathname.startsWith(BASE.pathname))return;
  event.waitUntil((async()=>{
   const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
-  for(const c of clients){if(c.url.startsWith(target.origin)&&'focus'in c){try{await c.navigate(target.href);return await c.focus()}catch{}}}
+  for(const c of clients){if(c.url.startsWith(BASE.href)&&'focus'in c){try{const page=await c.navigate(target.href);if(page)return await page.focus()}catch{}}}
   return self.clients.openWindow(target.href);
  })());
 });
