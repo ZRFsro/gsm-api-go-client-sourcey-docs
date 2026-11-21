@@ -24,7 +24,7 @@ A kártya „Fotók” gombja kizárólag az adott verseny albumát nyitja meg. 
 2. Nyomd meg a „+ Helyszíni hír beírása” gombot.
 3. Írd le röviden, mi történik most és mi következik. Például: „Vili a második csoportban vív.” / „Még egy asszó, utána várjuk a tábla beosztását.”
 4. Ha ismert, add meg az ellenfelet, a pástot és az állást. Ezek nem kötelezők.
-5. Mentsd el. A család ugyanitt látja az új hírt; versenynapon a megnyitott, online oldal 45 másodpercenként frissül. Más napokon a „↻ Frissítés” gombbal kérhetők le az aktuális adatok.
+5. Mentsd el. A család ugyanitt látja az új hírt. Az Élő fül látható állapotban, az aznapi, még folyamatban lévő versenynél frissül 45 másodpercenként. A **Frissítés** gombbal bármikor lekérhetők az aktuális adatok.
 
 A helyszíni hírek külön eseménynaplóba kerülnek. Nem írják át a hivatalos helyezést vagy asszóeredményeket. Pontosításkor új hírt kell írni; a korábbi hírek megmaradnak időponttal. A rendszer nem talál ki ellenfelet, kezdési időt vagy következő kört, ha az még nincs megerősítve.
 

@@ -219,6 +219,42 @@ try {
     await adminPage.waitForFunction(()=>document.querySelector('#toast')?.textContent?.includes('fotó elmentve: Jövő Bajnokai'));
     check(capturedEventId==='22222222-2222-4222-8222-222222222222',"photo remains attached to the selected older competition");
     await adminPage.close();
+
+    const refreshPage=await browser.newPage({viewport:{width:390,height:820}});
+    await refreshPage.clock.install({time:new Date('2026-11-21T08:15:00Z')});
+    let reads=0, raceFinished=false;
+    await refreshPage.goto(fixturePage(action=>{
+      if(action==='login')return {payload:{role:'family',token:'fake-refresh-test'}};
+      if(action==='events'){
+        reads++;
+        const active={...sample[0],date:'2026-11-21'};
+        if(reads>=2)active.live_updates=[{phase:'pool',current_text:'Vili csoportasszót vív.',created_at:'2026-11-21T08:15:00Z'}];
+        if(raceFinished)Object.assign(active,{rank:14,field_size:30,source_status:'complete'});
+        return {payload:{role:'family',events:[active,...sample.slice(1)]}};
+      }
+      return {payload:{role:null}};
+    }));
+    await refreshPage.locator('#loginPass').fill('fake-test');
+    await refreshPage.locator('#loginForm button[type=submit]').click();
+    await refreshPage.locator('#upcomingPanel').waitFor({state:'visible'});
+    await refreshPage.clock.fastForward(46000);
+    check(reads===1,"the home page does not poll even on a competition day");
+    const firstLiveRead=refreshPage.waitForResponse(r=>r.url().endsWith('action=events'));
+    await refreshPage.locator('[data-tab="live"]').click();
+    await firstLiveRead;
+    await refreshPage.locator('#liveBrief').filter({hasText:'Vili csoportasszót vív.'}).waitFor();
+    check(reads===2,"opening a stale active live view fetches current results");
+    raceFinished=true;
+    await refreshPage.clock.fastForward(46000);
+    await refreshPage.locator('#liveBrief').filter({hasText:'Verseny véget ért'}).waitFor();
+    check(reads===3,"the active live view refreshes to display the final result");
+    await refreshPage.clock.fastForward(100000);
+    await refreshPage.evaluate(()=>window.dispatchEvent(new Event('pageshow')));
+    check(reads===3,"a finished race stops polling and foreground refresh");
+    await refreshPage.locator('#refreshResults').click();
+    await refreshPage.locator('#toast').filter({hasText:'A napló frissítve.'}).waitFor();
+    check(reads===4,"manual refresh still works for a finished race");
+    await refreshPage.close();
   }
  }
  }finally{await browser.close();}
