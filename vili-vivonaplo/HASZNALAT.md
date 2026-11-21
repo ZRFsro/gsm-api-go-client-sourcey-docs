@@ -38,7 +38,7 @@ A telefonról feltöltött fotók a jobb minőség érdekében kb. 1650 képpont
 
 ## Telefonra telepítés
 
-Az oldal tetején a „Telefonra telepítés” gomb nyitja a telepítést vagy a készülékhez tartozó útmutatót.
+A **Beállítások → Alkalmazás → Telefonra telepítés** gomb nyitja a telepítést vagy a készülékhez tartozó útmutatót.
 
 - iPhone: Safari → Megosztás → Főképernyőhöz adás → Hozzáadás.
 - Android: Chrome → ⋮ menü → Alkalmazás telepítése / Hozzáadás a kezdőképernyőhöz.
@@ -65,7 +65,7 @@ A hivatalos cseh eredmények és a Geostab U11 fiú tőr PDF megjelenését kül
 
 ## Nagyszülők és nagynénik első belépése
 
-A családi szerepkör a jelszavas belépés után egyszeri útmutató ablakot kap, amelyben le van írva: hogyan kell megnyitni a versenyt, a sárga Fencing Time Live élő eredménylinket, a családi helyszíni híreket, a csoportkörök utáni helyezést és a fotókat. Az ablak bezárható; utána a fejléc Súgó gombjával bármikor újranyitható. A külső Fencing Time Live oldalon külön bejelentkezés szükséges lehet.
+Belépés után a **Versenyek** fülön a helyezések és a lenyitható részletek látszanak. Az **Élő** fülön a verseny állása és a helyszíni hírek vannak. A **Fotók** fül versenyenként nyitja meg az albumokat.
 
 A november 21-i opavai esemény külső eredményközlését 2026.11.21-én 08:00–19:45 CET között 15 percenként vizsgálja a Supabase időzítő. Ez az ellenőrzés a hivatalos eredménylink és az esetleges Geostab PDF közzétételét figyeli, nem jelent automatikus asszóimportot.
 

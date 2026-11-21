@@ -1,6 +1,6 @@
-const CACHE = 'vili-shell-v26';
+const CACHE = 'vili-shell-v27';
 const BASE = new URL('./', self.location);
-const ASSETS = ['./index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './fencing-hero.png', './update.js?v=8', './bout-entry.js?v=2'];
+const ASSETS = ['./index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './fencing-hero.png', './update.js?v=9', './bout-entry.js?v=2'];
 const assetURLs = new Set(ASSETS.map(asset => new URL(asset, BASE).href));
 self.addEventListener('install', event => {
  event.waitUntil((async () => {

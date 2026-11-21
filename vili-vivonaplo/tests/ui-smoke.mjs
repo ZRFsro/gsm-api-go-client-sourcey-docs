@@ -90,6 +90,8 @@ try {
   check(await page.locator('#pushSetup').isHidden(),"notification controls hidden on live page ("+width+"px)");
   await page.locator('[data-tab="settings"]').click();
   check(await page.locator('#pushSetup').isVisible(),"family can manage notifications in Settings ("+width+"px)");
+  check(await page.locator('#checkAppUpdate').isVisible(),"app update control is in Settings ("+width+"px)");
+  check(!(await page.locator('#passwordForm').isVisible()),"parent controls stay out of the family settings ("+width+"px)");
   check(await page.locator('#pushTestButton').isHidden(),"test push requires subscription ("+width+"px)");
   await page.locator('[data-tab="live"]').click();
   const liveResults=page.locator("#liveOfficialResults");
@@ -102,7 +104,9 @@ try {
   check((await liveResults.innerText()).includes("17.")&&(await liveResults.innerText()).includes("8. / 29"),"live view shows final and post-pool placement ("+width+"px)");
   check(await liveResults.locator(".bout-name").innerText()==="Teszt ellenfél","live view shows the imported bout ("+width+"px)");
   await page.locator('[data-tab="events"]').click();
-  check(await page.locator(".race-date-badge").count()===sample.length,"real competition date badges rendered ("+width+"px)");
+  const navFits=await page.locator('.tabs').evaluate(menu=>menu.scrollWidth<=menu.clientWidth&&Array.from(menu.children).every(item=>item.scrollWidth<=item.clientWidth));
+  check(navFits,"all five navigation items fit without horizontal scrolling ("+width+"px)");
+  check(await page.locator(".race-date-badge").count()===sample.length-1,"upcoming race is shown once outside the completed list ("+width+"px)");
   const importedCard=page.locator('.race-card[data-race="44444444-4444-4444-8444-444444444444"]');
   check((await importedCard.locator('summary .race-stats > div').filter({hasText:"Csoportkörök után"}).innerText()).includes("6. / 30"),
    "collapsed card shows the imported single-round placement ("+width+"px)");
@@ -114,6 +118,8 @@ try {
   check(await page.locator('#liveBrief').isVisible(),"home live button goes straight to the summary ("+width+"px)");
   check((await page.locator('#liveBrief').innerText()).includes('09:30'),"scheduled time visible on the summary ("+width+"px)");
   await page.locator('[data-tab="progress"]').click();
+  check(!(await page.locator('.result-chart').isVisible()),"placement lists precede the optional chart ("+width+"px)");
+  await page.locator('#progressChart summary').click();
   check((await page.locator("#content").innerText()).includes("43%"),"field-normalized placement is 43% ("+width+"px)");
   check(await page.locator(".result-chart").count()===1,"real-data chart renders as SVG ("+width+"px)");
   check(await page.locator(".legend-pool").count()===1,"post-pool legend visible ("+width+"px)");
@@ -135,7 +141,11 @@ try {
   check(progressOverflow<=2,"progress view has no horizontal overflow "+width+"px, measured="+progressOverflow);
 
   await page.locator('[data-tab="photos"]').click();
-  check((await page.locator("#content").innerText()).includes("még nincs fényképe"),"empty album shown ("+width+"px)");
+  check(await page.locator('.album-row').count()===sample.length,"photos open as a compact album index ("+width+"px)");
+  await page.locator('.album-row').first().click();
+  check((await page.locator("#content").innerText()).includes("még nincs fotó"),"empty album shown ("+width+"px)");
+  await page.locator('#allAlbums').click();
+  check(await page.locator('.album-row').first().evaluate(row=>document.activeElement===row),"back to albums restores keyboard focus ("+width+"px)");
   check(!errors.length,"JavaScript runtime without uncaught exceptions ("+width+"px): "+errors.join(","));
   await page.close();
   if(width===390){
@@ -176,6 +186,13 @@ try {
     check(resultSubmissions[0].update_id===resultSubmissions[1].update_id&&resultSubmissions[1].opponent==='Második ellenfél',
      "an out-of-order bout keeps the same id when retried and advances to the remaining opponent");
     await adminPage.locator('#closeBoutEntry').click();
+    await adminPage.locator('[data-tab="events"]').click();
+    await adminPage.locator('#newEvent').click();
+    check(await adminPage.locator('#editModal[open] #eventName').isVisible(),"new event opens a keyboard-accessible dialog");
+    check(!(await adminPage.locator('#eventRank').isVisible()),"advanced result fields start collapsed");
+    await adminPage.keyboard.press('Escape');
+    await adminPage.locator('#editModal').waitFor({state:'hidden',timeout:6000});
+    check(!(await adminPage.locator('#editModal').isVisible()),"Escape closes the event dialog");
     await adminPage.locator('[data-tab="photos"]').click();
     await adminPage.locator("#quickPhotoButton").waitFor({state:"visible"});
     check(await adminPage.locator("#quickPhotoButton").isVisible(),"admin photo upload in the photo view");

@@ -4,12 +4,16 @@
   const dialog=document.createElement('dialog');
   dialog.className='update-dialog';
   dialog.setAttribute('aria-labelledby','update-title');
-  dialog.innerHTML='<h2 id="update-title">Új verzió érhető el</h2><p>Az app régebbi változata van megnyitva. Frissítsd, hogy a legújabb megjelenést és funkciókat lásd.</p><p>A mentett eredmények és fotók megmaradnak. A még el nem mentett beírásokat előbb mentsd el.</p><p class="update-error" role="status"></p><div class="actions"><button type="button" class="secondary" data-later>Később</button><button type="button" data-refresh>Frissítés most</button></div>';
+  dialog.innerHTML='<h2 id="update-title">Frissíthető a vívónapló</h2><p>A frissítés megnyitja az új verziót.</p><p class="update-error" role="status"></p><div class="actions"><button type="button" class="secondary" data-later>Később</button><button type="button" data-refresh>Frissítés most</button></div>';
   document.body.append(dialog);
-  const manual=document.createElement('button');
-  manual.type='button';manual.className='secondary';manual.textContent='Frissítés ellenőrzése';
-  document.querySelector('.footer')?.append(document.createElement('br'),manual);
-  manual.onclick=async()=>{manual.disabled=true;manual.textContent='Ellenőrzés…';const ok=await check(true);manual.disabled=false;manual.textContent=!ok?'A frissítés nem ellenőrizhető · Próbáld újra':available===current?'Az app naprakész · Ellenőrzés újra':'Frissítés ellenőrzése'};
+  const manual=document.getElementById('checkAppUpdate');
+  const manualStatus=document.getElementById('appUpdateStatus');
+  manual.onclick=async()=>{
+    manual.disabled=true;manualStatus.textContent='Ellenőrzés…';
+    const ok=await check(true);
+    manual.disabled=false;
+    manualStatus.textContent=!ok?'Az ellenőrzés sikertelen. Próbáld újra.':available===current?'Az alkalmazás naprakész.':'';
+  };
   const button=dialog.querySelector('[data-refresh]'),error=dialog.querySelector('.update-error');
   function close(){dismissedVersion=available;dialog.close();lastFocus?.focus?.()}
   dialog.querySelector('[data-later]').onclick=close;
@@ -33,7 +37,7 @@
     pendingCheck ||= latest().finally(()=>{pendingCheck=null});
     try{
       available=await pendingCheck;
-      if(available!==current&&!dialog.open&&(force||available!==dismissedVersion)){
+      if(available!==current&&!document.querySelector('dialog[open]')&&(force||available!==dismissedVersion)){
         lastFocus=document.activeElement;error.textContent='';dialog.showModal();button.focus();
       }
       return true;
@@ -54,6 +58,7 @@
     navigator.serviceWorker.addEventListener('controllerchange',()=>check());
   }
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});
+  document.addEventListener('close',event=>{if(event.target!==dialog&&available&&available!==current)check()},true);
   window.addEventListener('online',()=>check());
   window.addEventListener('pageshow',()=>check());
   setInterval(check,6*60*60*1000);check();
