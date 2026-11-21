@@ -10,10 +10,11 @@ bejegyzéssel kell rendelkeznie az `ftl_collector_keys` táblában.
 - A NAS-on külön Chromium-profil őrzi a Fencing Time Live-belépést.
 - A gyűjtő a böngésző külön lapján dolgozik; a belépési lapot nem kezeli.
 - A folyamatban lévő, ütemezett versenyeket körülbelül percenként ellenőrzi.
+- Ha a naplóban csak a teljes Fencing Time Live-program szerepel, a gyűjtő a programból keresi ki a versenyszámot, ellenőrzi Vili nevét a névsorban, és a megtalált versenyszámot a meglévő bejegyzéshez köti. A keresést a következő futáskor megismétli, amíg nincs egyértelmű találat.
 - A már végleges eredményt óránként ellenőrzi újra. A fogadó jelenleg az
   elmúlt 3 nap és a következő 21 nap rögzített versenyeit adja vissza.
 - Az új versenyeket a FTL utolsó 10 napos és következő 7 napos listáján keresi,
-  alapértelmezésben Magyarországon és Szlovákiában (`HUN,SVK`).
+  alapértelmezésben Magyarországon, Szlovákiában és Csehországban (`HUN,SVK,CZE`).
   A keresés óránként indul újra, legfeljebb 20 versennyel és versenyenként
   30 versenyszámmal, rövid részletekben, hogy az élő követést ne tartsa fel.
 - Csak a teljes `STERMENSZKY Vilmos` név pontos egyezése után hoz létre

@@ -5,7 +5,7 @@ const TEST=process.argv.includes('--self-test'),STATE=TEST?'/state/discovery-tes
 const testEvents=[];let testUpdates=0;
 const log=(status,details={})=>{const value={time:new Date().toISOString(),status,...details};writeFileSync(STATE,JSON.stringify(value));console.log(JSON.stringify(value));};
 const isFTL=u=>{try{const x=new URL(u);return x.protocol==='https:'&&['www.fencingtimelive.com','fencingtimelive.com'].includes(x.hostname)}catch{return false}};
-async function api(action,body){if(TEST){if(action==='schedule')return {events:testEvents};if(action==='discover'){const e={...body,id:'test-'+testEvents.length,source_status:'scanning'};testEvents.push(e);return {ok:true,id:e.id}}if(action==='update'){Object.assign(testEvents.find(e=>e.id===body.event_id),body,{source_status:body.status});testUpdates++;return {ok:true}}throw Error('Unknown test action')}
+async function api(action,body){if(TEST){if(action==='schedule')return {events:testEvents};if(action==='discover'&&body.event_id){const e=testEvents.find(e=>e.id===body.event_id);e.source_url=body.source_url;return {ok:true,id:e.id}}if(action==='discover'){const e={...body,id:'test-'+testEvents.length,source_status:'scanning'};testEvents.push(e);return {ok:true,id:e.id}}if(action==='update'){Object.assign(testEvents.find(e=>e.id===body.event_id),body,{source_status:body.status});testUpdates++;return {ok:true}}throw Error('Unknown test action')}
 const r=await fetch(API+'?action=collector-'+action,{method:body?'POST':'GET',headers:{'X-Vili-Collector':TOKEN,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(30000)});if(!r.ok)throw Error('API '+action+' '+r.status+': '+(await r.text()).slice(0,200));return r.json();}
 class CDP {
  constructor(ws){this.ws=ws;this.id=0;this.pending=new Map();ws.addEventListener('message',e=>{const m=JSON.parse(e.data),p=this.pending.get(m.id);if(p){clearTimeout(p.timer);this.pending.delete(m.id);m.error?p.reject(Error(m.error.message)):p.resolve(m.result)}});ws.addEventListener('close',()=>{for(const p of this.pending.values()){clearTimeout(p.timer);p.reject(Error('Browser disconnected'))}this.pending.clear()});}
@@ -78,6 +78,43 @@ async function visit(url){
  let last;for(let n=0;n<80;n++){await sleep(500);try{last=await c.evaluate(extraction);if(last.login)return last;if(!samePage(last.url))continue;if(last.loaded&&(last.confirmed||last.links.length>10||last.tournaments.length>0)&&n>=5)return last;}catch{}}
  if(samePage(last?.url)&&last.loaded)return last;throw Error('Competition page did not finish loading: '+url);
 }
+const eventPath=/^\/events\/(?:view|competitors)\/[a-f0-9]{32}\/?$/i;
+export function scheduleCandidates(links,category){
+ const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+ const expected=normalize(category);
+ const matchesCategory=label=>{
+  if(!/\bu[ -]?11\b/.test(expected)||!/\bfiu\b/.test(expected)||!/\btor\b/.test(expected))return true;
+  return !/\b(girls?|women|female|lany|no[ik]?|zacky|zakyne|divky|minizacky)\b/.test(label)&&
+   (/\bmini[ -]?zaci\b/.test(label)||(/\bu[ -]?11\b/.test(label)&&/\b(boys?|men|male|fiu|ferfi|chlapci|zaci)\b/.test(label)))&&
+   /\b(foil|fleret|fleuret|tor|florett)\b/.test(label);
+ };
+ const urls=new Set();
+ for(const link of links){
+  if(!isFTL(link.url))continue;
+  const url=new URL(link.url);
+  if(!eventPath.test(url.pathname))continue;
+  if(!matchesCategory(normalize(link.text))&&!matchesCategory(normalize(link.context)))continue;
+  url.pathname=url.pathname.replace('/events/view/','/events/competitors/').replace(/\/$/,'');
+  url.search='';url.hash='';
+  urls.add(url.href);
+ }
+ return [...urls];
+}
+export async function resolveScheduledEvent(event,loadPage,saveSource){
+ const schedule=await loadPage(event.tournament_schedule);
+ if(schedule.login)return {status:'login_required'};
+ const matches=[];
+ for(const url of scheduleCandidates(schedule.links,event.category)){
+  const page=await loadPage(url);
+  if(page.login)return {status:'login_required'};
+  if(page.confirmed)matches.push({url,page});
+ }
+ if(matches.length!==1)return {status:matches.length?'ambiguous':'no_match'};
+ const {url,page}=matches[0];
+ await saveSource({event_id:event.id,tournament_schedule:event.tournament_schedule,
+  source_url:url,fencer_confirmed:true,evidence:{title:page.title,rows:page.rows}});
+ return {status:'linked',event:{...event,source_url:url}};
+}
 async function collect(event){
  const first=await visit(event.source_url);if(first.login){await api('update',{event_id:event.id,source_url:event.source_url,status:'login_required'});return 'login_required'}
  const eventId=new URL(event.source_url).pathname.split('/').find(x=>/^[A-F0-9]{32}$/i.test(x));
@@ -100,7 +137,7 @@ async function discover(){
  if(!discoveryState){
  if(Date.now()-lastDiscovery<3600000)return;
  const home=await visit('https://www.fencingtimelive.com/');if(home.login)return;
- const c=await browser(),countries=(process.env.DISCOVERY_COUNTRIES||'HUN,SVK').split(',');let candidates=[];
+ const c=await browser(),countries=(process.env.DISCOVERY_COUNTRIES||'HUN,SVK,CZE').split(',');let candidates=[];
  for(const filter of ['Last 10 days','Next 7 days']){
   const clicked=await c.evaluate(`(()=>{const a=Array.from(document.querySelectorAll('a')).find(a=>a.textContent.trim()===${JSON.stringify(filter)});if(!a)return false;a.click();return true})()`);if(!clicked)throw Error('Tournament filter missing: '+filter);
   let page;for(let n=0;n<60;n++){await sleep(500);page=await c.evaluate(extraction);if(n>=9&&page.loaded)break;}
@@ -115,7 +152,9 @@ async function discover(){
  if(!discoveryState.events.length){
  const tournament=discoveryState.tournaments.shift();
  if(!tournament){log('discovery_complete',{tournaments:discoveryState.total,countries:discoveryState.countries});discoveryState=null;lastDiscovery=Date.now();return}
-  const dateParts=tournament.dates.match(/[A-Za-z]+ \d{1,2}, \d{4}/g)||[];
+  const known=await api('schedule');
+ if(known.pending_events?.some(e=>new URL(e.tournament_schedule).pathname.split('/').filter(Boolean).at(-1)?.toLowerCase()===tournament.id.toLowerCase()))continue;
+ const dateParts=tournament.dates.match(/[A-Za-z]+ \d{1,2}, \d{4}/g)||[];
   if(dateParts.length&&new Date(dateParts.at(-1)+' 23:59:59 UTC').getTime()<Date.now()-3*86400000)continue;
   const schedule=await visit('https://www.fencingtimelive.com/tournaments/eventSchedule/'+tournament.id);
   discoveryState.events=[...new Set(schedule.links.filter(l=>/\/events\/(view|competitors)\//.test(l.url)).map(l=>l.url.replace('/events/view/','/events/competitors/')))].slice(0,30).map(url=>({url,tournament}));
@@ -135,6 +174,14 @@ async function main(){
  if(!API||!TOKEN)throw Error('Missing collector configuration');mkdirSync('/state',{recursive:true});log('starting');
  while(true){const started=Date.now();try{
   const schedule=await api('schedule');let login=false;
+  for(const pending of schedule.pending_events||[]){
+   try{
+    const resolved=await resolveScheduledEvent(pending,visit,body=>api('discover',body));
+    log('scheduled_'+resolved.status,{event:pending.name});
+    login ||= resolved.status==='login_required';
+    if(resolved.event)schedule.events.push(resolved.event);
+   }catch(err){client?.close();client=null;log('scheduled_error',{event:pending.name,message:err.message});}
+  }
   for(const e of schedule.events){if(e.source_status==='complete'&&Date.now()-(completedChecks.get(e.id)||0)<3600000)continue;try{const status=await collect(e);login ||= status==='login_required';if(status==='complete')completedChecks.set(e.id,Date.now());}catch(err){client?.close();client=null;await api('update',{event_id:e.id,source_url:e.source_url,status:'error',message:err.message}).catch(()=>{});log('event_error',{message:err.message})}}
   if(!login)await discover();
   log(login?'login_required':'waiting',{events:schedule.events.length,next_check_seconds:60});

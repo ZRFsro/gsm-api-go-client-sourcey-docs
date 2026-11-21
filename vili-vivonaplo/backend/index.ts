@@ -106,19 +106,42 @@ function cleanEvidence(value:any){
  const pool_results=Array.isArray(value?.pool_results)?value.pool_results.slice(0,12).map((p:any)=>({round:num(p.round),round_id:safeStr(p.round_id,40),pool_rank:num(p.pool_rank),pool_size:num(p.pool_size),overall_rank:num(p.overall_rank),overall_size:num(p.overall_size),wins:num(p.wins),touches_scored:num(p.touches_scored),touches_received:num(p.touches_received),provisional:p.provisional===true})):[];
  return {title,rows,pool_results,source:"Fencing Time Live",observed_at:new Date().toISOString()};
 }
+function isFTLSchedule(v:unknown){return isFTL(v)&&/^\/tournaments\/eventSchedule\/[a-f0-9]{32}\/?$/i.test(new URL(String(v)).pathname)}
 async function collectorAction(req:Request,action:string){
  if(!await collectorOK(req))return err("Érvénytelen adatgyűjtő-jogosultság",401);
  if(action==="collector-schedule"){
    const now=new Date();
    const start=new Date(now.getTime()-3*86400000).toISOString().slice(0,10);
    const end=new Date(now.getTime()+21*86400000).toISOString().slice(0,10);
-   const {data,error}=await sb.from("events").select("id,name,date,city,category,source_url,source_status").gte("date",start).lte("date",end).not("source_url","is",null).order("date");
+   const {data,error}=await sb.from("events").select("id,name,date,city,category,source_url,source_status,tournament_schedule:source_evidence->>ftl_tournament_schedule").gte("date",start).lte("date",end).order("date");
    if(error)throw error;
-   return json({events:(data||[]).filter((e:any)=>isFTL(e.source_url)),server_time:now.toISOString()});
+   const events=(data||[]).filter((e:any)=>isFTL(e.source_url)&&!isFTLSchedule(e.source_url));
+   const pending_events=(data||[]).filter((e:any)=>isFTLSchedule(e.tournament_schedule)&&(!isFTL(e.source_url)||isFTLSchedule(e.source_url)));
+   return json({events,pending_events,server_time:now.toISOString()});
  }
  if(action==="collector-discover"){
    if(req.method!=="POST")return err("Hibás metódus",405);
    const body=await req.json();
+   if(body.event_id!==undefined){
+      const url=safeStr(body.source_url,1200);
+      if(!uid(body.event_id)||!isFTLSchedule(body.tournament_schedule)||body.fencer_confirmed!==true||
+       !isFTL(url)||!/^\/events\/competitors\/[a-f0-9]{32}$/i.test(new URL(url).pathname))
+       return err("Hiányzó igazolt versenyadat",400);
+      const {data:event,error:findError}=await sb.from("events").select("source_url,source_evidence").eq("id",body.event_id).maybeSingle();
+      if(findError)throw findError;
+      if(!event||event.source_evidence?.ftl_tournament_schedule!==body.tournament_schedule)return err("A programhivatkozás nem egyezik",409);
+      if(event.source_url===url)return json({ok:true,id:body.event_id,existing:true});
+      if(isFTL(event.source_url)&&!isFTLSchedule(event.source_url))return err("A versenyszám már hozzá van rendelve",409);
+      const duplicate=await sb.from("events").select("id").eq("source_url",url).neq("id",body.event_id).limit(1);
+      if(duplicate.error)throw duplicate.error;
+      if(duplicate.data?.length)return err("A versenyszám már szerepel a naplóban",409);
+      let update=sb.from("events").update({source_url:url}).eq("id",body.event_id).eq("source_evidence->>ftl_tournament_schedule",body.tournament_schedule);
+      update=event.source_url===null?update.is("source_url",null):update.eq("source_url",event.source_url);
+      const {data,error}=await update.select("id").maybeSingle();
+      if(error)throw error;
+      if(!data)return err("A verseny közben módosult",409);
+      return json({ok:true,id:data.id});
+   }
    if(!isFTL(body.source_url)||!body.fencer_confirmed||safeStr(body.name,160).length<4||!/^\d{4}-\d{2}-\d{2}$/.test(body.date||""))return err("Hiányzó igazolt versenyadat",400);
    const url=safeStr(body.source_url,1200);
    const existing=await sb.from("events").select("id").eq("source_url",url).maybeSingle();
