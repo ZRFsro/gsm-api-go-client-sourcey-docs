@@ -28,7 +28,7 @@ const sample=[
  {id:"22222222-2222-4222-8222-222222222222",name:"Jövő Bajnokai – teszt",date:previous,
   category:"U10 fiú tőr",city:"Budapest, Magyarország",source_status:"complete",
   source_url:"https://www.fencingtimelive.com/rounds/strips/example",source_evidence:{post_pool:{rank:8,size:29},pool_results:[{round:1,pool_rank:3,pool_size:5},{round:2,pool_rank:1,pool_size:6}]},
-  rank:17,field_size:29,wins:7,losses:3,photos:[],bouts:[]},
+  rank:17,field_size:29,wins:7,losses:3,photos:[],bouts:[{stage:"Csoport 1",opponent:"Teszt ellenfél",my_score:5,their_score:3}]},
  {id:"33333333-3333-4333-8333-333333333333",name:"Szlovák Kupa – vegyes mezőny",date:"2026-10-31",
   category:"U11 fiú tőr",city:"Pozsony, Szlovákia",source_status:"not_connected",
   source_evidence:{post_pool:{rank:20,size:21}},rank:10,field_size:15,wins:0,losses:5,photos:[],bouts:[]}
@@ -86,6 +86,12 @@ try {
   await page.locator("#racePopupHelp").click();
   await page.locator("#raceLiveOfficial").click();
   check(await page.locator('[data-tab="live"]').evaluate(e=>e.classList.contains("active")),"popup navigates to own live page ("+width+"px)");
+  const liveResults=page.locator("#liveOfficialResults");
+  await page.locator("#liveSelect").selectOption("11111111-1111-4111-8111-111111111111");
+  check((await liveResults.innerText()).includes("hivatalos eredményeire még várunk"),"live view shows pending official results ("+width+"px)");
+  await page.locator("#liveSelect").selectOption("22222222-2222-4222-8222-222222222222");
+  check((await liveResults.innerText()).includes("17.")&&(await liveResults.innerText()).includes("8. / 29"),"live view shows final and post-pool placement ("+width+"px)");
+  check(await liveResults.locator(".bout-name").innerText()==="Teszt ellenfél","live view shows the imported bout ("+width+"px)");
   await page.locator('[data-tab="events"]').click();
   check(await page.locator(".race-date-badge").count()===3,"real competition date badges rendered ("+width+"px)");
   check(await page.locator("#upcomingPanel").isVisible(),"upcoming U11 card visible ("+width+"px)");
