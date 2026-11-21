@@ -106,6 +106,24 @@ try {
   await page.locator('[data-tab="events"]').click();
   const navFits=await page.locator('.tabs').evaluate(menu=>menu.scrollWidth<=menu.clientWidth&&Array.from(menu.children).every(item=>item.scrollWidth<=item.clientWidth));
   check(navFits,"all five navigation items fit without horizontal scrolling ("+width+"px)");
+  await page.locator('.race-card > summary').first().hover();
+  const appearance=await page.locator('.race-card').first().evaluate(card=>{
+   const rgb=value=>value.match(/\d+(?:\.\d+)?/g).slice(0,3).map(Number);
+   const luminance=value=>rgb(value).map(value=>{
+    const channel=value/255;
+    return channel<=.04045?channel/12.92:((channel+.055)/1.055)**2.4;
+   }).reduce((sum,value,index)=>sum+value*[.2126,.7152,.0722][index],0);
+   const label=getComputedStyle(card.querySelector('.race-stats span'));
+   const headingInk=luminance(getComputedStyle(card.querySelector('h3')).color);
+   const summaryBackground=luminance(getComputedStyle(card.querySelector('summary')).backgroundColor);
+   const ink=luminance(label.color),background=luminance(getComputedStyle(card.querySelector('.race-stats > div')).backgroundColor);
+   return {page:luminance(getComputedStyle(document.body).backgroundColor),background,
+    contrast:(Math.max(ink,background)+.05)/(Math.min(ink,background)+.05),
+    headingContrast:(Math.max(headingInk,summaryBackground)+.05)/(Math.min(headingInk,summaryBackground)+.05),
+    label:parseFloat(label.fontSize),rank:parseFloat(getComputedStyle(card.querySelector('.race-stats strong')).fontSize)};
+  });
+  check(appearance.page<.08&&appearance.background<.12&&appearance.contrast>=4.5&&appearance.headingContrast>=4.5,"dark surfaces keep race labels readable ("+width+"px)");
+  if(width<=600)check(appearance.label>=15&&appearance.rank>=27,"mobile race labels and placement numbers are enlarged ("+width+"px)");
   check(await page.locator(".race-date-badge").count()===sample.length-1,"upcoming race is shown once outside the completed list ("+width+"px)");
   const importedCard=page.locator('.race-card[data-race="44444444-4444-4444-8444-444444444444"]');
   check((await importedCard.locator('summary .race-stats > div').filter({hasText:"Csoportkörök után"}).innerText()).includes("6. / 30"),

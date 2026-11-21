@@ -1,4 +1,4 @@
-const CACHE = 'vili-shell-v28';
+const CACHE = 'vili-shell-v29';
 const BASE = new URL('./', self.location);
 const ASSETS = ['./index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './fencing-hero.png', './update.js?v=9', './bout-entry.js?v=2'];
 const assetURLs = new Set(ASSETS.map(asset => new URL(asset, BASE).href));
