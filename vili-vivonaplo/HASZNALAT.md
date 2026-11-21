@@ -68,3 +68,11 @@ A hivatalos cseh eredmények és a Geostab U11 fiú tőr PDF megjelenését kül
 A családi szerepkör a jelszavas belépés után egyszeri útmutató ablakot kap, amelyben le van írva: hogyan kell megnyitni a versenyt, a sárga Fencing Time Live élő eredménylinket, a családi helyszíni híreket, a csoportkörök utáni helyezést és a fotókat. Az ablak bezárható; utána a fejléc Súgó gombjával bármikor újranyitható. A külső Fencing Time Live oldalon külön bejelentkezés szükséges lehet.
 
 A november 21-i opavai esemény külső eredményközlését 2026.11.21-én 08:00–19:45 CET között 15 percenként vizsgálja a Supabase időzítő. Ez az ellenőrzés a hivatalos eredménylink és az esetleges Geostab PDF közzétételét figyeli, nem jelent automatikus asszóimportot.
+
+## Gyors fényképfeltöltés iPhone-ról
+
+Szülői belépés után a képernyő alján folyamatosan látható a **📸 Fotók feltöltése** gomb. Koppints rá, válaszd ki a fényképeket a telefonodon, és az oldal automatikusan feltölti őket az aznapi verseny albumába. Nincs külön albumválasztás vagy második „Mentés” lépés. A feltöltés eredményét rövid értesítés jelzi. A fotók eredetije változatlanul a telefonon marad. A családi/nagyszülői hozzáférés továbbra is csak olvasásra jogosult.
+
+## Mai verseny megnyitása
+
+A versenynapi felugró ablak és a főoldal kiemelt gombja **a saját Élő követés fülre visz**. A részletes Fencing Time Live-adatok folyamatos importja külön, hitelesített NAS-adatgyűjtőt igényel; amíg a konkrét U11-es versenyszám nincs hozzárendelve, a felület csak a már rögzített eredményeket és helyszíni híreket mutatja. Hiányzó asszókat nem talál ki.
