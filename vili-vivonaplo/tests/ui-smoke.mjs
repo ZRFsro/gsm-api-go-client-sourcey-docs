@@ -56,7 +56,7 @@ try {
   await page.goto(address,{waitUntil:"domcontentloaded"});
   await page.locator("#raceLiveModal").waitFor({state:"visible"});
   check(await page.locator("#raceLiveModal").isVisible(),"race-day popup opens before login ("+width+"px)");
-  check((await page.locator("#raceLiveOfficial").getAttribute("href"))==="https://www.fencingtimelive.com/tournaments/eventSchedule/AB4F797396B5483DA011976CC6B4ED36#today","popup links to QR event ("+width+"px)");
+  check((await page.locator("#raceLiveOfficial").innerText()).includes("Vili élő naplójának"),"race-day popup opens our family diary instead of FTL ("+width+"px)");
   await page.locator("#raceLiveDismiss").click();
   check(!(await page.locator("#raceLiveModal").isVisible()),"race popup dismissible ("+width+"px)");
   await page.locator("#racePopupHelp").click();
@@ -80,6 +80,10 @@ try {
   check(await page.locator("#familyGuide").isVisible(),"grandparents can reopen help ("+width+"px)");
   await page.locator("#guideRaceButton").click();
   check(await page.locator('[data-race="11111111-1111-4111-8111-111111111111"]').evaluate(e=>e.open),"guide opens competition details ("+width+"px)");
+  await page.locator("#racePopupHelp").click();
+  await page.locator("#raceLiveOfficial").click();
+  check(await page.locator('[data-tab="live"]').evaluate(e=>e.classList.contains("active")),"popup navigates to own live page ("+width+"px)");
+  await page.locator('[data-tab="events"]').click();
   check(await page.locator(".race-date-badge").count()===3,"real competition date badges rendered ("+width+"px)");
   check(await page.locator("#upcomingPanel").isVisible(),"upcoming U11 card visible ("+width+"px)");
   check((await page.locator("#upcomingPanel").innerText()).includes("09:30"),"scheduled time visible ("+width+"px)");
