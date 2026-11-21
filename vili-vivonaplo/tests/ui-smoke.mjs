@@ -113,6 +113,41 @@ try {
   check((await page.locator("#content").innerText()).includes("még nincs fényképe"),"empty album shown ("+width+"px)");
   check(!errors.length,"JavaScript runtime without uncaught exceptions ("+width+"px): "+errors.join(","));
   await page.close();
+  if(width===390){
+    const adminPage=await browser.newPage({viewport:{width:390,height:820}});
+    await adminPage.clock.setFixedTime(new Date('2026-11-21T08:15:00Z'));
+    let capturedEventId=null;
+    await adminPage.route("https://dcmmpkjfgjaqdzhzmzuh.supabase.co/functions/v1/vili-vivonaplo**",async(route)=>{
+      const req=route.request(),action=new URL(req.url()).searchParams.get("action");
+      if(action==="add-photo"){const payload=JSON.parse(req.postData());capturedEventId=payload.event_id;await route.fulfill({status:200,contentType:"application/json",headers:{"access-control-allow-origin":"*"},body:JSON.stringify({ok:true})});return;}
+      const response=action==="whoami"?{role:null}:
+        action==="login"?{role:"admin",token:"fake-admin-session"}:
+        action==="events"?{role:"admin",events:sample.map((e,i)=>i===0?{...e,date:"2026-11-21"}:e),collector:{configured:true,last_seen:new Date().toISOString()}}:
+        {ok:true};
+      await route.fulfill({status:200,contentType:"application/json",headers:{"access-control-allow-origin":"*"},body:JSON.stringify(response)});
+    });
+    await adminPage.goto(address,{waitUntil:"domcontentloaded"});
+    await adminPage.locator("#raceLiveDismiss").click();
+    await adminPage.locator("#loginRole").selectOption("admin");
+    await adminPage.locator("#loginPass").fill("fake-test");
+    await adminPage.locator("#loginForm button[type=submit]").click();
+    await adminPage.locator("#quickPhotoButton").waitFor({state:"visible"});
+    check(await adminPage.locator("#quickPhotoButton").isVisible(),"admin always-visible photo button");
+    check((await adminPage.locator("#quickPhotoLabel").innerText()).includes("Opava"),"quick photo defaults to current Opava event");
+    const choose=adminPage.waitForEvent("filechooser");
+    await adminPage.locator("#quickPhotoButton").click();
+    const fc=await choose;
+    check(!!fc,"one tap opens native file chooser");
+    const imageData=await adminPage.evaluate(()=>{
+      const c=document.createElement("canvas");c.width=16;c.height=16;
+      c.getContext("2d").fillRect(0,0,16,16);
+      return c.toDataURL("image/jpeg",.8).split(",")[1];
+    });
+    await fc.setFiles({name:"test-photo.jpg",mimeType:"image/jpeg",buffer:Buffer.from(imageData,"base64")});
+    await adminPage.waitForFunction(()=>document.querySelector("#toast")?.textContent?.includes("fotó elmentve"),{timeout:12000});
+    check(capturedEventId==="11111111-1111-4111-8111-111111111111","photo uploaded to Opava event ID without modal");
+    await adminPage.close();
+  }
  }
  }finally{await browser.close();}
  }
