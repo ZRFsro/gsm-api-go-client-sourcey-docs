@@ -45,6 +45,7 @@
       available=await latest();
       if('serviceWorker' in navigator){const registration=await navigator.serviceWorker.getRegistration();registration?.update().catch(()=>{})}
       const url=new URL('./index.html',location.href);url.searchParams.set('app-update',available+'-'+Date.now());
+      url.hash=location.hash;
       location.replace(url.href);
     }catch(e){error.textContent=e.message;button.disabled=false;button.textContent='Újrapróbálás'}
   };

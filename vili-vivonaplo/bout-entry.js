@@ -1,16 +1,11 @@
-function setupBoutEntry({api, getEvents, getRole, reload, today}) {
+function setupBoutEntry({api, getEvents, getRole, reload}) {
  const el = id => document.getElementById(id);
  const dialog = el('boutEntry'), form = el('boutForm'), setup = el('boutSetup');
- const launch = el('openBoutEntry'), eventSelect = el('boutEvent'), opponent = el('boutOpponent');
+ const eventSelect = el('boutEvent'), opponent = el('boutOpponent');
  const select = el('boutSelect'), mine = el('boutMine'), theirs = el('boutTheirs');
  const stage = el('boutPhase'), notice = el('boutStatus');
  const queues = new Map();
- let eventId, activeId, saving = false, autoOpened = false;
-
- function currentRace() {
-  return getEvents().find(event => event.date === today() && event.rank == null &&
-   event.source_status !== 'complete' && event.live_updates?.[0]?.phase !== 'finished');
- }
+ let eventId, activeId, saving = false;
  function queue() {
   if (!queues.has(eventId)) {
    let stored = [];
@@ -55,7 +50,7 @@ function setupBoutEntry({api, getEvents, getRole, reload, today}) {
  function open(id) {
   if (getRole() !== 'admin' || dialog.open || !getEvents().length) return;
   const events = getEvents();
-  eventId = id || currentRace()?.id || eventId || events[0].id;
+  eventId = id || eventId || events[0].id;
   if (!events.some(event => event.id === eventId)) eventId = events[0].id;
   eventSelect.replaceChildren(...events.map(event => option(event.id, `${event.name} · ${event.date}`)));
   eventSelect.value = eventId;
@@ -68,7 +63,6 @@ function setupBoutEntry({api, getEvents, getRole, reload, today}) {
   dialog.showModal();
   (activeId ? select : opponent).focus();
  }
- launch.onclick = () => open();
  el('closeBoutEntry').onclick = () => { if (!saving) dialog.close(); };
  dialog.addEventListener('cancel', event => { if (saving) event.preventDefault(); });
  eventSelect.onchange = () => {
@@ -142,14 +136,9 @@ function setupBoutEntry({api, getEvents, getRole, reload, today}) {
   }
  };
  return {
+  open,
   sync() {
-   launch.hidden = getRole() !== 'admin' || !getEvents().length;
-   if (launch.hidden) { if (dialog.open) dialog.close(); return; }
-   const event = currentRace();
-   if (!autoOpened && event && !document.querySelector('.overlay:not([hidden]), dialog[open]')) {
-    autoOpened = true;
-    open(event.id);
-   }
+   if (getRole() !== 'admin' && dialog.open) dialog.close();
   },
  };
 }

@@ -1,6 +1,6 @@
-const CACHE = 'vili-shell-v24';
+const CACHE = 'vili-shell-v25';
 const BASE = new URL('./', self.location);
-const ASSETS = ['./index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './fencing-hero.png', './update.js?v=7', './bout-entry.js?v=1'];
+const ASSETS = ['./index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './fencing-hero.png', './update.js?v=8', './bout-entry.js?v=2'];
 const assetURLs = new Set(ASSETS.map(asset => new URL(asset, BASE).href));
 self.addEventListener('install', event => {
  event.waitUntil((async () => {
@@ -48,6 +48,7 @@ self.addEventListener('notificationclick',event=>{
  event.notification.close();
  const target=new URL(event.notification.data?.url||'./',BASE);
  if(target.origin!==BASE.origin||!target.pathname.startsWith(BASE.pathname))return;
+ if(!target.hash)target.hash='elo';
  event.waitUntil((async()=>{
   const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
   for(const c of clients){if(c.url.startsWith(BASE.href)&&'focus'in c){try{const page=await c.navigate(target.href);if(page)return await page.focus()}catch{}}}
