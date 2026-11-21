@@ -5,18 +5,38 @@ import path from "node:path";
 
 const root=path.resolve("vili-vivonaplo");
 const types={".html":"text/html; charset=utf-8",".js":"text/javascript",".png":"image/png",".webmanifest":"application/manifest+json"};
+const hostedApi="https://dcmmpkjfgjaqdzhzmzuh.supabase.co/functions/v1/";
+const fixtures=new Map();
 const server=createServer(async(req,res)=>{
  try{
-  const pathname=decodeURIComponent(new URL(req.url,"http://localhost").pathname);
+  const url=new URL(req.url,"http://localhost");
+  const pathname=decodeURIComponent(url.pathname);
+  if(pathname.startsWith('/fixture-api/')){
+   const fixture=fixtures.get(pathname.split('/').at(-1));
+   if(!fixture){res.writeHead(404).end();return;}
+   let raw='';for await(const chunk of req)raw+=chunk;
+   const reply=fixture(url.searchParams.get('action'),raw?JSON.parse(raw):null);
+   res.writeHead(reply.status??200,{"Content-Type":"application/json","Cache-Control":"no-store"});
+   res.end(JSON.stringify(reply.payload));
+   return;
+  }
   const local=path.resolve(root,"."+pathname);
   if(!local.startsWith(root+path.sep)) {res.writeHead(403);res.end();return;}
-  const data=await readFile(local);
+  const data=pathname==="/index.html"
+   ? (await readFile(local,"utf8")).replaceAll(hostedApi+"vili-vivonaplo","/fixture-api/"+(url.searchParams.get('fixture')??''))
+     .replaceAll(hostedApi+"vili-push","/fixture-push")
+   : await readFile(local);
   res.writeHead(200,{"Content-Type":types[path.extname(local)]||"application/octet-stream"});
   res.end(data);
  }catch(e){res.writeHead(404);res.end("Not found");}
 });
 await new Promise(resolve=>server.listen(0,"127.0.0.1",resolve));
 const address="http://127.0.0.1:"+server.address().port+"/index.html";
+function fixturePage(handler){
+ const id=String(fixtures.size+1);
+ fixtures.set(id,handler);
+ return address+'?fixture='+id;
+}
 const now=new Date();
 const format=(x)=>{const p=Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:"Europe/Bratislava",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(x).map(x=>[x.type,x.value]));return p.year+"-"+p.month+"-"+p.day;};
 const upcoming=format(new Date(now.getTime()+86400000*2));
@@ -31,7 +51,11 @@ const sample=[
   rank:17,field_size:29,wins:7,losses:3,photos:[],bouts:[{stage:"Csoport 1",opponent:"Teszt ellenfél",my_score:5,their_score:3}]},
  {id:"33333333-3333-4333-8333-333333333333",name:"Szlovák Kupa – vegyes mezőny",date:"2026-10-31",
   category:"U11 fiú tőr",city:"Pozsony, Szlovákia",source_status:"not_connected",
-  source_evidence:{post_pool:{rank:20,size:21}},rank:10,field_size:15,wins:0,losses:5,photos:[],bouts:[]}
+  source_evidence:{post_pool:{rank:20,size:21}},rank:10,field_size:15,wins:0,losses:5,photos:[],bouts:[]},
+ {id:"44444444-4444-4444-8444-444444444444",name:"NAS-import – vegyes tőr",date:"2026-11-20",
+  category:"U11 vegyes tőr",city:"Opava, Csehország",source_status:"complete",
+  source_evidence:{pool_results:[{round:1,pool_rank:2,pool_size:7,overall_rank:6,overall_size:30,provisional:false}]},
+  rank:14,field_size:30,wins:6,losses:2,photos:[],bouts:[]}
 ];
 let passed=0,engineName="";
 function check(ok,msg){if(!ok)throw Error(msg);passed++; console.log("PASS "+engineName+": "+msg);}
@@ -45,15 +69,13 @@ try {
   await page.clock.setFixedTime(new Date('2026-11-21T08:15:00Z'));
   const errors=[];
   page.on("pageerror",e=>errors.push(e.message));
-  await page.route("https://dcmmpkjfgjaqdzhzmzuh.supabase.co/functions/v1/vili-vivonaplo**",async(route)=>{
-   const req=route.request(),action=new URL(req.url()).searchParams.get("action");
+  await page.goto(fixturePage(action=>{
    const response=action==="whoami"?{role:null}:
      action==="login"?{role:"family",token:"fake-test-only-session"}:
      action==="events"?{role:"family",events:sample,collector:{configured:true,last_seen:new Date().toISOString()}}:
      action==="logout"?{ok:true}:{ok:true};
-   await route.fulfill({status:200,contentType:"application/json",headers:{"access-control-allow-origin":"*"},body:JSON.stringify(response)});
-  });
-  await page.goto(address,{waitUntil:"domcontentloaded"});
+   return {payload:response};
+  }),{waitUntil:"domcontentloaded"});
   check(await page.locator('.overlay:not([hidden]), dialog[open]').count()===0,"no navigation popup before login ("+width+"px)");
   await page.locator('#openPublicLive').click();
   check(new URL(page.url()).hash==='#elo',"one tap sets the live destination before login ("+width+"px)");
@@ -80,7 +102,10 @@ try {
   check((await liveResults.innerText()).includes("17.")&&(await liveResults.innerText()).includes("8. / 29"),"live view shows final and post-pool placement ("+width+"px)");
   check(await liveResults.locator(".bout-name").innerText()==="Teszt ellenfél","live view shows the imported bout ("+width+"px)");
   await page.locator('[data-tab="events"]').click();
-  check(await page.locator(".race-date-badge").count()===3,"real competition date badges rendered ("+width+"px)");
+  check(await page.locator(".race-date-badge").count()===sample.length,"real competition date badges rendered ("+width+"px)");
+  const importedCard=page.locator('.race-card[data-race="44444444-4444-4444-8444-444444444444"]');
+  check((await importedCard.locator('summary .race-stats > div').filter({hasText:"Csoportkörök után"}).innerText()).includes("6. / 30"),
+   "collapsed card shows the imported single-round placement ("+width+"px)");
   check(await page.locator("#upcomingPanel").isVisible(),"upcoming U11 card visible ("+width+"px)");
   check(await page.locator("#upcomingPanel [data-own-live]").count()===1,"Opava's live button stays on family website ("+width+"px)");
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
@@ -96,6 +121,8 @@ try {
   check(await page.locator(".final-series-line").count()===1,"final-placement trend rendered ("+width+"px)");
   const budapest=page.locator(".progress-race").filter({hasText:"Jövő Bajnokai – teszt"});
   check((await budapest.locator(".progress-place-group strong").innerText()).trim()==="8. / 29","post-pool rank 8/29 recorded ("+width+"px)");
+  const importedRace=page.locator(".progress-race").filter({hasText:"NAS-import – vegyes tőr"});
+  check((await importedRace.locator(".progress-place-group strong").innerText()).trim()==="6. / 30","progress uses the imported post-pool placement ("+width+"px)");
   check((await budapest.locator(".progress-place-final strong").innerText()).trim()==="17. / 29","final rank 17/29 recorded ("+width+"px)");
   const mixed=page.locator(".progress-race").filter({hasText:"Szlovák Kupa – vegyes mezőny"});
   check((await mixed.locator(".progress-place-group strong").innerText()).trim()==="20. / 21","mixed pool count stays 21 ("+width+"px)");
@@ -115,26 +142,44 @@ try {
     const adminPage=await browser.newPage({viewport:{width:390,height:820}});
     await adminPage.clock.setFixedTime(new Date('2026-11-21T08:15:00Z'));
     let capturedEventId=null;
-    await adminPage.route("https://dcmmpkjfgjaqdzhzmzuh.supabase.co/functions/v1/vili-vivonaplo**",async(route)=>{
-      const req=route.request(),action=new URL(req.url()).searchParams.get("action");
-      if(action==="add-photo"){const payload=JSON.parse(req.postData());capturedEventId=payload.event_id;await route.fulfill({status:200,contentType:"application/json",headers:{"access-control-allow-origin":"*"},body:JSON.stringify({ok:true})});return;}
+    const resultSubmissions=[];
+    await adminPage.goto(fixturePage((action,body)=>{
+      const reply=(payload,status=200)=>({payload,status});
+      if(action==="add-photo"){capturedEventId=body.event_id;return reply({ok:true});}
+      if(action==="live-update"){
+        resultSubmissions.push(body);
+        if(resultSubmissions.length===1)return reply({error:"Szimulált hálózati hiba"},503);
+        return reply({ok:true,id:body.update_id});
+      }
       const response=action==="whoami"?{role:null}:
         action==="login"?{role:"admin",token:"fake-admin-session"}:
         action==="events"?{role:"admin",events:sample.map((e,i)=>i===0?{...e,date:"2026-11-21"}:e),collector:{configured:true,last_seen:new Date().toISOString()}}:
         {ok:true};
-      await route.fulfill({status:200,contentType:"application/json",headers:{"access-control-allow-origin":"*"},body:JSON.stringify(response)});
-    });
-    await adminPage.goto(address,{waitUntil:"domcontentloaded"});
+      return reply(response);
+    }),{waitUntil:"domcontentloaded"});
     await adminPage.locator("#loginRole").selectOption("admin");
     await adminPage.locator("#loginPass").fill("fake-test");
     await adminPage.locator("#loginForm button[type=submit]").click();
     await adminPage.locator('[data-tab="live"]').click();
     check(await adminPage.locator('#openBoutEntry').isVisible(),"asszó entry is an explicit action");
     check(!(await adminPage.locator('#boutEntry').isVisible()),"asszó form does not open on its own");
+    await adminPage.locator('#openBoutEntry').click();
+    await adminPage.locator('#boutOpponent').fill('Első ellenfél\nMásodik ellenfél');
+    await adminPage.locator('#boutAddForm button[type=submit]').click();
+    await adminPage.locator('#boutSelect').selectOption({index:1});
+    await adminPage.locator('#boutMine').fill('5');
+    await adminPage.locator('#boutTheirs').fill('2');
+    await adminPage.locator('#boutForm button[type=submit]').click();
+    await adminPage.locator('#boutStatus').filter({hasText:'Szimulált hálózati hiba'}).waitFor();
+    await adminPage.locator('#boutForm button[type=submit]').click();
+    await adminPage.locator('#boutStatus').filter({hasText:'Következik: Első ellenfél'}).waitFor();
+    check(resultSubmissions[0].update_id===resultSubmissions[1].update_id&&resultSubmissions[1].opponent==='Második ellenfél',
+     "an out-of-order bout keeps the same id when retried and advances to the remaining opponent");
+    await adminPage.locator('#closeBoutEntry').click();
     await adminPage.locator('[data-tab="photos"]').click();
     await adminPage.locator("#quickPhotoButton").waitFor({state:"visible"});
     check(await adminPage.locator("#quickPhotoButton").isVisible(),"admin photo upload in the photo view");
-    check((await adminPage.locator("#quickPhotoLabel").innerText()).includes("Opava"),"quick photo defaults to current Opava event");
+    check((await adminPage.locator("#quickPhotoLabel").innerText()).includes("Opavský"),"quick photo defaults to the current event");
     const choose=adminPage.waitForEvent("filechooser");
     await adminPage.locator("#quickPhotoButton").click();
     const fc=await choose;
@@ -147,6 +192,15 @@ try {
     await fc.setFiles({name:"test-photo.jpg",mimeType:"image/jpeg",buffer:Buffer.from(imageData,"base64")});
     await adminPage.waitForFunction(()=>document.querySelector("#toast")?.textContent?.includes("fotó elmentve"),{timeout:12000});
     check(capturedEventId==="11111111-1111-4111-8111-111111111111","photo uploaded to Opava event ID without modal");
+    await adminPage.locator('[data-tab="live"]').click();
+    await adminPage.locator('#liveSelect').selectOption('22222222-2222-4222-8222-222222222222');
+    await adminPage.getByRole('button',{name:'Versenyfotók',exact:true}).click();
+    check((await adminPage.locator('#quickPhotoLabel').innerText()).includes('Jövő Bajnokai'),"quick upload follows the open album");
+    const albumChoose=adminPage.waitForEvent('filechooser');
+    await adminPage.locator('#quickPhotoButton').click();
+    await (await albumChoose).setFiles({name:'album-photo.jpg',mimeType:'image/jpeg',buffer:Buffer.from(imageData,'base64')});
+    await adminPage.waitForFunction(()=>document.querySelector('#toast')?.textContent?.includes('fotó elmentve: Jövő Bajnokai'));
+    check(capturedEventId==='22222222-2222-4222-8222-222222222222',"photo remains attached to the selected older competition");
     await adminPage.close();
   }
  }
