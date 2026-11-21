@@ -160,22 +160,34 @@ async function collectorAction(req:Request,action:string){
    if(!isFTL(body.source_url)||!body.fencer_confirmed||safeStr(body.name,160).length<4||!/^\d{4}-\d{2}-\d{2}$/.test(body.date||""))return err("Hiányzó igazolt versenyadat",400);
    const url=safeStr(body.source_url,1200);
    const existing=await sb.from("events").select("id").eq("source_url",url).maybeSingle();
+   if(existing.error)throw existing.error;
    if(existing.data)return json({ok:true,id:existing.data.id,existing:true});
-   const {data,error}=await sb.from("events").insert({name:safeStr(body.name,160),date:body.date,city:safeStr(body.city,180),category:safeStr(body.category,100),source_url:url,source_status:"scanning",source_evidence:cleanEvidence(body.evidence)}).select("id").single();
+   const title=safeStr(body.name,160).trim();
+   const category=safeStr(body.category,100).trim();
+   const separator=category?-1:title.indexOf(" - ");
+   const name=separator<0?title:title.slice(separator+3).trim()||title;
+   const division=separator<0?category:safeStr(title.slice(0,separator),100).trim();
+   const {data,error}=await sb.from("events").insert({name,date:body.date,city:safeStr(body.city,180),category:division,source_url:url,source_status:"scanning",source_evidence:cleanEvidence(body.evidence)}).select("id").single();
    if(error)throw error;return json({ok:true,id:data.id,existing:false});
  }
  if(action==="collector-update"){
    if(req.method!=="POST")return err("Hibás metódus",405);
    const b=await req.json();
    if(!uid(b.event_id)||!isFTL(b.source_url))return err("Hibás versenyazonosító vagy forrás",400);
-   const {data:e,error:findError}=await sb.from("events").select("id,source_url,source_evidence").eq("id",b.event_id).maybeSingle();
+   const {data:e,error:findError}=await sb.from("events").select("id,source_url,source_status,source_evidence").eq("id",b.event_id).maybeSingle();
    if(findError||!e||e.source_url!==b.source_url)return err("Forrásazonosító nem egyezik",400);
    const acceptable=["awaiting_login","scanning","updated","complete","login_required","no_results","error"];
    if(!acceptable.includes(b.status))return err("Hibás forrásállapot",400);
    const change:any={source_checked_at:new Date().toISOString(),source_status:b.status,source_last_error:b.status==="error"?safeStr(b.message,300):null};
    if(b.status==="updated"||b.status==="complete"){
       if(b.fencer_confirmed!==true)return err("A vívó azonosítása hiányzik",400);
-      change.source_evidence={...e.source_evidence,...cleanEvidence(b.evidence)};
+      const ev=cleanEvidence(b.evidence);
+      const prior=e.source_evidence||{};
+      // A partial source response can omit a table that was already imported.
+      change.source_evidence={...prior,...ev,
+        rows:ev.rows.length?ev.rows:prior.rows||[],
+        pool_results:ev.pool_results.length?ev.pool_results:prior.pool_results||[]};
+      if(e.source_status==="complete"&&b.status==="updated")change.source_status="complete";
       if(b.rank!==null&&b.rank!==undefined)change.rank=num(b.rank);
       if(b.field_size!==null&&b.field_size!==undefined)change.field_size=num(b.field_size);
       if(b.wins!==null&&b.wins!==undefined)change.wins=num(b.wins);
@@ -183,7 +195,6 @@ async function collectorAction(req:Request,action:string){
       if(Array.isArray(b.bouts)&&b.bouts.length){
         change.bouts=b.bouts.slice(0,100).map((x:any)=>({stage:safeStr(x.stage,70),opponent:safeStr(x.opponent,130),my_score:num(x.my_score),their_score:num(x.their_score)}));
       }
-      const ev=cleanEvidence(b.evidence);
       const obs=Array.isArray(b.observations)?b.observations.slice(0,60).map((x:any)=>({stage:safeStr(x.stage,60),raw:safeStr(x.raw,220)})):ev.rows.map((raw:string)=>({stage:"",raw}));
       const fingerprint=await sha(JSON.stringify(obs)+JSON.stringify({rank:change.rank??null,bouts:change.bouts??null}));
       const up=await sb.from("ftl_observations").upsert({event_id:e.id,content_hash:fingerprint,source_url:e.source_url,observations:obs},{onConflict:"event_id,content_hash",ignoreDuplicates:true});

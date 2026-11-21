@@ -26,7 +26,6 @@ async function getSettings(){
 }
 const allowedEndpoint=(v:string)=>/^https:\/\/[A-Za-z0-9.-]+\/.{1,2000}$/.test(v)&&v.length<=2000;
 const isKey=(s:string)=>/^[A-Za-z0-9_-]{8,256}$/.test(s);
-const EVENT_ID="a5ceb202-e81f-402d-b136-2dacb6abddcd";
 const APP="https://zrfsro.github.io/gsm-api-go-client-sourcey-docs/vili-vivonaplo/";
 function fingerprint(e:any){
  const ev=e.source_evidence||{};
@@ -36,51 +35,78 @@ function fingerprint(e:any){
   pdf:ev.geostab_pdf_available===true||ev.geostab_pdf_available==="true",
   status:e.source_status==="external_results_available"||e.source_status==="complete"?"available":"waiting"});
 }
-function notifiedDescription(prev:string|null,current:any){
+function notifiedDescription(prev:string|null,current:any,now:number){
  const newState=JSON.parse(fingerprint(current));
  const changes=prev?JSON.parse(prev):null;
- if(!changes)return null;
- const changePublish=(!changes.published&&newState.published)||(!changes.pdf&&newState.pdf);
- if(changePublish)return {title:"Opava U11 – megjelentek az eredmények!",body:"A hivatalos eredménylista megjelent. Nézd meg Vili saját vívónaplójában!"};
- if(newState.bouts?.length>(changes.bouts?.length||0))return {title:"Opava U11 – új asszóeredmény",body:"Vili naplójában már "+newState.bouts.length+" rögzített asszó látható."};
- if(newState.pool_results&&JSON.stringify(newState.pool_results)!==JSON.stringify(changes.pool_results))return {title:"Opava U11 – új csoporteredmények",body:"Vili csoportkörének új eredményei megérkeztek a saját naplóba."};
- if(newState.post_pool&&JSON.stringify(newState.post_pool)!==JSON.stringify(changes.post_pool)){
-  const p=newState.post_pool;return {title:"Opava U11 – csoportkörök utáni helyezés",body:"Vili összesített helyezése: "+(p.rank||"—")+". / "+(p.size||"—")+"."};
+ const title=current.name;
+ if(!changes){
+  const age=now-Date.parse(current.source_updated_at);
+  const fresh=age>=0&&age<5*60_000;
+  if(!fresh||(!newState.rank&&!newState.bouts?.length&&!newState.pool_results?.length))return null;
  }
- if(newState.rank&&newState.rank!==changes.rank)return {title:"Opava U11 – Vili végső helyezése",body:"Vili helyezése: "+newState.rank+". / "+(newState.size||"—")+"."};
+ if(newState.rank&&newState.rank!==changes?.rank)return {title:title+" – Vili végső helyezése",body:"Vili helyezése: "+newState.rank+". / "+(newState.size||"—")+"."};
+ if(!changes)return {title:title+" – új eredmények",body:"Vili első eredményei megérkeztek a vívónaplóba."};
+ const changePublish=(!changes.published&&newState.published)||(!changes.pdf&&newState.pdf);
+ if(changePublish)return {title:title+" – megjelentek az eredmények",body:"A hivatalos eredménylista elérhető a vívónaplóban."};
+ if(newState.bouts?.length>(changes.bouts?.length||0))return {title:title+" – új asszóeredmény",body:"Vili naplójában már "+newState.bouts.length+" rögzített asszó látható."};
+ if(newState.pool_results?.length&&JSON.stringify(newState.pool_results)!==JSON.stringify(changes.pool_results))return {title:title+" – új csoporteredmények",body:"Vili csoportkörének eredményei frissültek a vívónaplóban."};
+ if(newState.post_pool&&JSON.stringify(newState.post_pool)!==JSON.stringify(changes.post_pool)){
+  const p=newState.post_pool;return {title:title+" – csoportkörök utáni helyezés",body:"Vili összesített helyezése: "+(p.rank||"—")+". / "+(p.size||"—")+"."};
+ }
  return null;
 }
-async function dispatch(){
- const e=await sb.from("events").select("id,name,date,rank,field_size,wins,losses,bouts,source_status,source_evidence").eq("id",EVENT_ID).single();
- if(e.error)throw e.error;
- const latest=fingerprint(e.data);
- const previous=await sb.from("vili_push_state").select("fingerprint").eq("event_id",EVENT_ID).maybeSingle();
- if(previous.error)throw previous.error;
- const prev=previous.data?.fingerprint||null;
- if(prev===latest)return {ok:true,changed:false,push_sent:0};
- const update=await sb.from("vili_push_state").upsert({event_id:EVENT_ID,fingerprint:latest,checked_at:new Date().toISOString()},{onConflict:"event_id"});
- if(update.error)throw update.error;
- const message=notifiedDescription(prev,e.data);
- if(!message)return {ok:true,changed:true,push_sent:0,reason:prev?"No new published information":"Initial baseline"};
- const setting=await getSettings();
- webpush.setVapidDetails("https://zrf.sk",setting.vapid_public,setting.vapid_private);
+async function dispatch(settings:any){
+ const now=new Date();
+ const today=now.toLocaleDateString('sv-SE',{timeZone:'Europe/Bratislava'});
+ const yesterday=new Date(Date.parse(today+'T00:00:00Z')-86400_000).toISOString().slice(0,10);
+ const events=await sb.from("events").select("id,name,date,rank,field_size,wins,losses,bouts,source_status,source_evidence,source_updated_at")
+  .gte("date",yesterday).lte("date",today);
+ if(events.error)throw events.error;
+ const races=events.data||[];
+ if(!races.length)return {ok:true,changed:false,push_sent:0};
+ const states=await sb.from("vili_push_state").select("event_id,fingerprint,checked_at").in("event_id",races.map(event=>event.id));
+ if(states.error)throw states.error;
+ const byEvent=new Map((states.data||[]).map(state=>[state.event_id,state]));
+ const messages=[];
+ let changed=false;
+ for(const event of races){
+  const previous=byEvent.get(event.id);
+  const latest=fingerprint(event);
+  if(previous?.fingerprint===latest)continue;
+  const message=notifiedDescription(previous?.fingerprint||null,event,now.getTime());
+  const next={event_id:event.id,fingerprint:latest,checked_at:now.toISOString()};
+  const claim=previous
+   ? sb.from("vili_push_state").update(next).eq("event_id",event.id).eq("checked_at",previous.checked_at)
+   : sb.from("vili_push_state").upsert(next,{onConflict:"event_id",ignoreDuplicates:true});
+  const saved=await claim.select("event_id").maybeSingle();
+  if(saved.error)throw saved.error;
+  if(!saved.data)continue;
+  changed=true;
+  if(message)messages.push({eventId:event.id,...message});
+ }
+ if(!messages.length)return {ok:true,changed,push_sent:0};
+ webpush.setVapidDetails("https://zrf.sk",settings.vapid_public,settings.vapid_private);
  const subs=await sb.from("vili_push_subscriptions").select("endpoint,p256dh,auth");
  if(subs.error)throw subs.error;
  let sent=0,failed=0;
- for(const x of subs.data||[]){
-  try{
-   await webpush.sendNotification({endpoint:x.endpoint,keys:{p256dh:x.p256dh,auth:x.auth}},JSON.stringify({title:message.title,body:message.body,url:APP}),{TTL:7200,urgency:"high"});
-   await sb.from("vili_push_subscriptions").update({last_sent_at:new Date().toISOString(),failed_count:0}).eq("endpoint",x.endpoint);
-   sent++;
-  }catch(err){
-   const status=(err as any)?.statusCode;
-   if(status===404||status===410)await sb.from("vili_push_subscriptions").delete().eq("endpoint",x.endpoint);
-   else await sb.from("vili_push_subscriptions").update({failed_count:1}).eq("endpoint",x.endpoint);
-   console.error("vili push failed",status,String(err).slice(0,200));failed++;
+ const expired=new Set<string>();
+ for(const {eventId,title,body} of messages){
+  for(const x of subs.data||[]){
+   if(expired.has(x.endpoint))continue;
+   try{
+    await webpush.sendNotification({endpoint:x.endpoint,keys:{p256dh:x.p256dh,auth:x.auth}},JSON.stringify({title,body,url:APP+'#elo'}),{TTL:7200,urgency:"high",timeout:8000});
+    await sb.from("vili_push_subscriptions").update({last_sent_at:new Date().toISOString(),failed_count:0}).eq("endpoint",x.endpoint);
+    sent++;
+   }catch(err){
+    const status=(err as any)?.statusCode;
+    if(status===404||status===410){expired.add(x.endpoint);await sb.from("vili_push_subscriptions").delete().eq("endpoint",x.endpoint);}
+    else await sb.from("vili_push_subscriptions").update({failed_count:1}).eq("endpoint",x.endpoint);
+    console.error("vili push failed",status,String(err).slice(0,200));failed++;
+   }
   }
+  await sb.from("vili_push_state").update({last_notified_at:new Date().toISOString()}).eq("event_id",eventId);
  }
- await sb.from("vili_push_state").update({last_notified_at:new Date().toISOString()}).eq("event_id",EVENT_ID);
- return {ok:true,changed:true,alert:message.title,push_sent:sent,push_failed:failed};
+ return {ok:true,changed,push_sent:sent,push_failed:failed};
 }
 Deno.serve(async(req:Request)=>{
  try{
@@ -94,7 +120,7 @@ Deno.serve(async(req:Request)=>{
    const settings=await getSettings();
    const token=req.headers.get("x-vili-dispatch")||"";
    if(!token||token!==settings.dispatch_secret)return response({error:"Not authorized"},401);
-   return response(await dispatch());
+   return response(await dispatch(settings));
   }
   if(req.method==="POST"&&(action==="subscribe"||action==="unsubscribe")){
    const origin=req.headers.get("origin");

@@ -26,7 +26,10 @@ bejegyzéssel kell rendelkeznie az `ftl_collector_keys` táblában.
 
 ## Telepítés és karbantartás
 
-A `compose.example.yaml` a forrásból történő telepítés mintája. A NAS-on
+A `compose.example.yaml` a forrásból történő telepítés mintája. Tartsd a
+`collector.mjs` fájlt a Compose-fájl mellett, és töltsd ki a szükséges
+környezeti változókat a helyi `.env` fájlban vagy a projekt beállításaiban.
+A NAS-on
 létrehozott projekt ugyanezt a programot beágyazva is tartalmazhatja, ezért
 önmagában feltölthető. A valódi jelszavakat és gyűjtőkulcsot tartalmazó
 telepítési fájl nem való nyilvános GitHub-tárolóba.

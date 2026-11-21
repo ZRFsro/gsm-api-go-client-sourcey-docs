@@ -1,0 +1,34 @@
+services:
+  browser:
+    image: lscr.io/linuxserver/chromium:latest
+    environment:
+      PUID: '${NAS_PUID:-1000}'
+      PGID: '${NAS_PGID:-1000}'
+      TZ: Europe/Bratislava
+      CUSTOM_USER: vili
+      PASSWORD: '${BROWSER_PASSWORD:?Set BROWSER_PASSWORD}'
+      CHROME_CLI: '--user-data-dir=/config/vili-profile --remote-debugging-port=9222 https://www.fencingtimelive.com/account/login'
+    ports:
+      - '${NAS_IP:?Set NAS_IP}:7901:3001'
+    volumes:
+      - browser-profile:/config
+    shm_size: 512mb
+    restart: unless-stopped
+  collector:
+    image: node:24-alpine
+    depends_on:
+      - browser
+    network_mode: service:browser
+    environment:
+      VILI_RUN: '1'
+      VILI_API: '${VILI_API:?Set VILI_API}'
+      VILI_TOKEN: '${VILI_TOKEN:?Set VILI_TOKEN}'
+      DISCOVERY_COUNTRIES: '${DISCOVERY_COUNTRIES:-HUN,SVK,CZE}'
+    command: ['node', '/tmp/collector.mjs']
+    volumes:
+      - ./collector.mjs:/tmp/collector.mjs:ro
+      - collector-state:/state
+    restart: unless-stopped
+volumes:
+  browser-profile:
+  collector-state:

@@ -43,11 +43,11 @@ Az oldal tetején a „Telefonra telepítés” gomb nyitja a telepítést vagy 
 - iPhone: Safari → Megosztás → Főképernyőhöz adás → Hozzáadás.
 - Android: Chrome → ⋮ menü → Alkalmazás telepítése / Hozzáadás a kezdőképernyőhöz.
 
-Ezután saját ikonnal, külön ablakban indul. Az aktuális adatokhoz és a helyszíni hírek mentéséhez internet szükséges. A családi belépés megmarad feltételnek; az alkalmazás újranyitásakor ismét kérheti.
+Ezután saját ikonnal, külön ablakban indul. Az aktuális adatokhoz és a helyszíni hírek mentéséhez internet szükséges. Belépéskor a „Maradjak bejelentkezve ezen a készüléken” beállítással megtartható a munkamenet. A telefonos értesítések a Beállítások menüben kapcsolhatók be és ki.
 
 ## Automatikus eredmények
 
-A NAS a saját, tartós Fencing Time Live-belépését használja. A folyamatban lévő versenyek hivatalos eredményeit körülbelül percenként ellenőrzi, a befejezetteket óránként. Az új magyarországi és szlovákiai versenyeket óránként keresi, és Vili teljes nevének pontos egyezése alapján kapcsolja a naplóhoz. A keresés a FTL közzétett versenyeire és névsoraira támaszkodik; a még nem közzétett nevezést nem tudja előre látni.
+A NAS a saját, tartós Fencing Time Live-belépését használja. A folyamatban lévő versenyek hivatalos eredményeit körülbelül percenként ellenőrzi, a befejezetteket óránként. Az új magyarországi, szlovákiai és csehországi versenyeket óránként keresi, és Vili teljes nevének pontos egyezése alapján kapcsolja a naplóhoz. Ehhez a Fencing Time Live-on közzétett nevezési lista szükséges.
 
 
 ## Opavský listopad 2026 – élő követés
@@ -71,8 +71,8 @@ A november 21-i opavai esemény külső eredményközlését 2026.11.21-én 08:0
 
 ## Gyors fényképfeltöltés iPhone-ról
 
-Szülői belépés után a képernyő alján folyamatosan látható a **📸 Fotók feltöltése** gomb. Koppints rá, válaszd ki a fényképeket a telefonodon, és az oldal automatikusan feltölti őket az aznapi verseny albumába. Nincs külön albumválasztás vagy második „Mentés” lépés. A feltöltés eredményét rövid értesítés jelzi. A fotók eredetije változatlanul a telefonon marad. A családi/nagyszülői hozzáférés továbbra is csak olvasásra jogosult.
+Szülői belépés után a Fotóalbum fülön látható a **📸 Fotók feltöltése** gomb. A fotók ahhoz a versenyhez kerülnek, amelynek az albuma meg van nyitva. Az összes album nézetében a gomb mellett látszik, melyik versenyhez töltesz fel. A feltöltés a képek kiválasztásakor indul, és a fotók eredetije a telefonon marad.
 
 ## Mai verseny megnyitása
 
-A versenynapi felugró ablak és a főoldal kiemelt gombja **a saját Élő követés fülre visz**. A részletes Fencing Time Live-adatok folyamatos importja külön, hitelesített NAS-adatgyűjtőt igényel; amíg a konkrét U11-es versenyszám nincs hozzárendelve, a felület csak a már rögzített eredményeket és helyszíni híreket mutatja. Hiányzó asszókat nem talál ki.
+Az **Élő közvetítés** megnyitásakor a verseny állása az oldal tetején jelenik meg. Az asszók és a részletes eredmények az alatta lévő lenyitható blokkban vannak. Szülőként az **Asszó rögzítése** gombbal választhatsz ellenfelet, és mentés után a következő ellenfél kerül sorra.
