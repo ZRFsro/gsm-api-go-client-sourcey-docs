@@ -125,6 +125,19 @@ try {
   check(appearance.page<.08&&appearance.background<.12&&appearance.contrast>=4.5&&appearance.headingContrast>=4.5,"dark surfaces keep race labels readable ("+width+"px)");
   if(width<=600)check(appearance.label>=15&&appearance.rank>=27,"mobile race labels and placement numbers are enlarged ("+width+"px)");
   check(await page.locator(".race-date-badge").count()===sample.length-1,"upcoming race is shown once outside the completed list ("+width+"px)");
+  await page.locator('#openSeasonCalendar').click();
+  await page.getByRole('heading',{name:'Szövetségi versenynaptár',exact:true}).waitFor();
+  check(new URL(page.url()).hash==='#naptar',"the federation calendar has a direct link ("+width+"px)");
+  check(await page.locator('#officialCalendarPdf').getAttribute('href')==='https://www.slovak-fencing.sk/Source/SSZ/Kalendar_2026-27.pdf',
+   "the original federation PDF is available ("+width+"px)");
+  const disputed=page.locator('.calendar-item').filter({hasText:'Jövő Bajnokai · 2. forduló'});
+  check((await disputed.locator('time').evaluateAll(dates=>dates.map(el=>el.dateTime))).join(',')==='2026-12-05,2026-12-12'&&await disputed.locator('.calendar-review').isVisible(),
+   "the federation's conflicting dates are displayed together ("+width+"px)");
+  check(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=2,"the calendar fits the screen ("+width+"px)");
+  await page.locator('#pastCalendar summary').click();
+  check(await page.locator('#pastCalendar .calendar-item').filter({hasText:'Törekvés'}).isVisible(),"past calendar dates remain accessible ("+width+"px)");
+  await page.locator('[data-tab="events"]').click();
+  check(await page.locator('.race-date-badge').count()===sample.length-1,"calendar items stay separate from personal races ("+width+"px)");
   const importedCard=page.locator('.race-card[data-race="44444444-4444-4444-8444-444444444444"]');
   check((await importedCard.locator('summary .race-stats > div').filter({hasText:"Csoportkörök után"}).innerText()).includes("6. / 30"),
    "collapsed card shows the imported single-round placement ("+width+"px)");
